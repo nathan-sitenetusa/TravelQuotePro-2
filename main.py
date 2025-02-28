@@ -3,7 +3,7 @@ import numpy as np
 from utils.calculations import (
     calculate_fixed_costs, calculate_guide_cost, calculate_entry_costs,
     calculate_meal_costs, calculate_total_per_person, calculate_final_price,
-    calculate_chaperone_count
+    calculate_chaperone_count, calculate_room_costs_by_occupancy
 )
 from utils.styling import set_page_style, show_header
 
@@ -149,7 +149,7 @@ def main():
                     value=0.0,
                     key=f"tax_rate_{i}"
                 )
-                st.multiselect(
+                st.session_state.hotels[i]['occupancy_options'] = st.multiselect(
                     "Available Room Occupancies",
                     options=[3, 4, 5, 6, 7, 8],
                     default=[4, 5, 6, 7, 8],
@@ -162,10 +162,11 @@ def main():
 
     if st.button("Calculate Quotes", type="primary"):
         # Calculate components
-        fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost)
+        fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost,
+                                         num_paying, num_chaperones)
         guide_cost = calculate_guide_cost(guide_rate, guide_days, guide_tip)
-        total_entry_costs = calculate_entry_costs(entry_costs)
-        total_meal_costs = calculate_meal_costs(lunch_costs, dinner_costs)
+        total_entry_costs = calculate_entry_costs(entry_costs, num_paying, num_chaperones)
+        total_meal_costs = calculate_meal_costs(lunch_costs, dinner_costs, num_paying, num_chaperones)
 
         st.header("Quote Breakdown")
 
@@ -173,30 +174,38 @@ def main():
             if hotel['name'] and hotel['cost_per_room']:
                 st.subheader(f"📋 {hotel['name']}")
 
-                total_per_person = calculate_total_per_person(
-                    fixed_costs, guide_cost, total_entry_costs,
-                    total_meal_costs, [hotel], num_paying, num_chaperones,
-                    driver_tip, guide_days
+                # Calculate costs for each occupancy option
+                room_costs_by_occupancy = calculate_room_costs_by_occupancy(
+                    hotel, num_paying, num_chaperones
                 )
 
-                price_tiers = calculate_final_price(total_per_person, profit_amount)
+                for occupancy, room_cost in room_costs_by_occupancy.items():
+                    st.markdown(f"#### {occupancy} People per Room")
 
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown("**Cost Breakdown (per person)**")
-                    st.write(f"Fixed Costs: ${fixed_costs/num_paying:,.2f}")
-                    st.write(f"Guide Costs (inc. tips): ${guide_cost/num_paying:,.2f}")
-                    st.write(f"Entry Tickets: ${total_entry_costs:,.2f}")
-                    st.write(f"Meal Costs: ${total_meal_costs:,.2f}")
-                    st.write(f"Room Costs: ${total_per_person:,.2f}")
-                    st.write(f"Driver Tips: ${driver_tip*guide_days/num_paying:,.2f}")
+                    total_per_person = calculate_total_per_person(
+                        fixed_costs, guide_cost, total_entry_costs,
+                        total_meal_costs, room_cost, num_paying, num_chaperones,
+                        driver_tip, guide_days
+                    )
 
-                with col2:
-                    st.markdown("**Price Tiers (including profit)**")
-                    for group, price in price_tiers.items():
-                        st.write(f"{group}: ${price:,.2f}")
+                    price_tiers = calculate_final_price(total_per_person, profit_amount)
 
-                st.markdown("---")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown("**Cost Breakdown (per paying person)**")
+                        st.write(f"Fixed Costs (inc. chaperones): ${fixed_costs:,.2f}")
+                        st.write(f"Guide Costs (inc. tips): ${guide_cost/num_paying:,.2f}")
+                        st.write(f"Entry Tickets (inc. chaperones): ${total_entry_costs:,.2f}")
+                        st.write(f"Meal Costs (inc. chaperones): ${total_meal_costs:,.2f}")
+                        st.write(f"Room Costs (inc. chaperone rooms): ${room_cost:,.2f}")
+                        st.write(f"Driver Tips: ${driver_tip*guide_days/num_paying:,.2f}")
+
+                    with col2:
+                        st.markdown("**Price Tiers (including profit)**")
+                        for group, price in price_tiers.items():
+                            st.write(f"{group}: ${price:,.2f}")
+
+                    st.markdown("---")
 
 if __name__ == "__main__":
     main()

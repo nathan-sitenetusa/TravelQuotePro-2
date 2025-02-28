@@ -1,8 +1,13 @@
 import numpy as np
 
-def calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost):
-    """Calculate total fixed transportation costs"""
-    return sum(filter(None, [bus_cost, metro_cost, airline_cost, train_cost]))
+def calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost, num_paying, num_chaperones):
+    """Calculate total fixed transportation costs including chaperones"""
+    total_fixed_costs = sum(filter(None, [bus_cost, metro_cost, airline_cost, train_cost]))
+    # Calculate cost per person including chaperones
+    cost_per_person = total_fixed_costs / (num_paying + num_chaperones) if num_paying + num_chaperones > 0 else 0
+    # Distribute chaperone costs among paying participants
+    total_per_paying = cost_per_person + (cost_per_person * num_chaperones / num_paying) if num_paying > 0 else 0
+    return total_per_paying
 
 def calculate_guide_cost(daily_rate, num_days, guide_tip_per_day=0):
     """Calculate total guide cost including tips"""
@@ -10,42 +15,47 @@ def calculate_guide_cost(daily_rate, num_days, guide_tip_per_day=0):
     tip_cost = guide_tip_per_day * num_days if guide_tip_per_day and num_days else 0
     return base_cost + tip_cost
 
-def calculate_entry_costs(entry_costs):
-    """Calculate total entry costs per person"""
-    return sum(cost for cost in entry_costs if cost)
+def calculate_entry_costs(entry_costs, num_paying, num_chaperones):
+    """Calculate total entry costs per paying person, including chaperone costs"""
+    cost_per_person = sum(cost for cost in entry_costs if cost)
+    # Add chaperone costs to paying participants
+    chaperone_distribution = (cost_per_person * num_chaperones / num_paying) if num_paying > 0 else 0
+    return cost_per_person + chaperone_distribution
 
-def calculate_meal_costs(lunch_costs, dinner_costs):
-    """Calculate total meal costs per person"""
-    return sum(lunch_costs + dinner_costs)
+def calculate_meal_costs(lunch_costs, dinner_costs, num_paying, num_chaperones):
+    """Calculate total meal costs per paying person, including chaperone meals"""
+    total_per_person = sum(lunch_costs + dinner_costs)
+    # Add chaperone meal costs to paying participants
+    chaperone_distribution = (total_per_person * num_chaperones / num_paying) if num_paying > 0 else 0
+    return total_per_person + chaperone_distribution
 
-def calculate_room_costs(hotels, num_people):
-    """Calculate room costs per person based on hotel options"""
-    if not hotels or not num_people:
-        return 0
+def calculate_chaperone_hotel_rooms(num_chaperones):
+    """Calculate number of hotel rooms needed for chaperones (2 per room)"""
+    return np.ceil(num_chaperones / 2)
 
-    min_cost_per_person = float('inf')
-    selected_hotel = None
-    selected_occupancy = None
+def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
+    """Calculate room costs for different occupancy scenarios"""
+    if not hotel['cost_per_room']:
+        return {}
 
-    for hotel in hotels:
-        if not hotel['cost_per_room']:
-            continue
+    base_cost = hotel['cost_per_room']
+    tax_amount = base_cost * (hotel['tax_rate'] / 100) if hotel['tax_rate'] else 0
+    total_room_cost = base_cost + tax_amount
 
-        base_cost = hotel['cost_per_room']
-        tax_amount = base_cost * (hotel['tax_rate'] / 100) if hotel['tax_rate'] else 0
-        total_room_cost = base_cost + tax_amount
+    # Calculate chaperone rooms cost
+    chaperone_rooms = calculate_chaperone_hotel_rooms(num_chaperones)
+    chaperone_room_cost = chaperone_rooms * total_room_cost
 
-        for occupancy in hotel['occupancy_options']:
-            if occupancy > 0:
-                num_rooms = np.ceil(num_people / occupancy)
-                cost_per_person = (total_room_cost * num_rooms) / num_people
+    costs_by_occupancy = {}
+    for occupancy in sorted(hotel['occupancy_options'], reverse=True):
+        if occupancy > 0:
+            # Calculate rooms needed for paying participants
+            paying_rooms = np.ceil(num_paying / occupancy)
+            total_room_costs = (paying_rooms * total_room_cost) + chaperone_room_cost
+            cost_per_paying = total_room_costs / num_paying if num_paying > 0 else 0
+            costs_by_occupancy[occupancy] = cost_per_paying
 
-                if cost_per_person < min_cost_per_person:
-                    min_cost_per_person = cost_per_person
-                    selected_hotel = hotel['name']
-                    selected_occupancy = occupancy
-
-    return min_cost_per_person if min_cost_per_person != float('inf') else 0
+    return costs_by_occupancy
 
 def calculate_chaperone_count(num_paying, ratio=None, fixed_count=None):
     """Calculate number of free chaperones based on ratio or fixed count"""
@@ -56,24 +66,15 @@ def calculate_chaperone_count(num_paying, ratio=None, fixed_count=None):
     return 0
 
 def calculate_total_per_person(fixed_costs, guide_cost, entry_costs, meal_costs,
-                             hotels, num_paying, num_chaperones, driver_tip_per_day=0,
+                             room_cost, num_paying, driver_tip_per_day=0,
                              num_days=1):
     """Calculate total cost per person"""
-    total_participants = num_paying + num_chaperones
-
-    # Distribute fixed costs among paying participants
-    fixed_per_person = fixed_costs / num_paying if num_paying > 0 else 0
-    guide_per_person = guide_cost / num_paying if num_paying > 0 else 0
-
-    # Calculate driver tips
+    # Calculate driver tips per paying person
     total_driver_tip = driver_tip_per_day * num_days
     driver_tip_per_person = total_driver_tip / num_paying if num_paying > 0 else 0
 
-    # Calculate room costs
-    room_per_person = calculate_room_costs(hotels, total_participants)
-
-    total = (fixed_per_person + guide_per_person + entry_costs +
-             meal_costs + room_per_person + driver_tip_per_person)
+    total = (fixed_costs + guide_cost/num_paying + entry_costs +
+             meal_costs + room_cost + driver_tip_per_person)
 
     return total
 
