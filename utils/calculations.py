@@ -35,27 +35,44 @@ def calculate_chaperone_hotel_rooms(num_chaperones):
 
 def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
     """Calculate room costs for different occupancy scenarios"""
-    if not hotel['cost_per_room']:
-        return {}
-
-    base_cost = hotel['cost_per_room']
-    tax_amount = base_cost * (hotel['tax_rate'] / 100) if hotel['tax_rate'] else 0
-    total_room_cost = base_cost + tax_amount
-
-    # Calculate chaperone rooms cost
-    chaperone_rooms = calculate_chaperone_hotel_rooms(num_chaperones)
-    chaperone_room_cost = chaperone_rooms * total_room_cost
-
     costs_by_occupancy = {}
-    for occupancy in sorted(hotel['occupancy_options'], reverse=True):
-        if occupancy > 0:
-            # Calculate rooms needed for paying participants
-            paying_rooms = np.ceil(num_paying / occupancy)
-            total_room_costs = (paying_rooms * total_room_cost) + chaperone_room_cost
-            cost_per_paying = total_room_costs / num_paying if num_paying > 0 else 0
-            costs_by_occupancy[occupancy] = cost_per_paying
+
+    # Get base room costs with tax
+    base_tax_rate = hotel['tax_rate'] / 100 if hotel['tax_rate'] else 0
+
+    # Standard occupancy calculations (1-5 persons)
+    if hotel['cost_per_room']:
+        standard_room_cost = hotel['cost_per_room'] * (1 + base_tax_rate)
+        for occupancy in hotel['occupancy_options']:
+            costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
+                standard_room_cost, occupancy, num_paying, num_chaperones
+            )
+
+    # High occupancy calculations (6-8 persons)
+    if hotel['has_high_occupancy'] and hotel['high_occupancy_cost']:
+        high_occupancy_room_cost = hotel['high_occupancy_cost'] * (1 + base_tax_rate)
+        for occupancy in hotel['high_occupancy_options']:
+            costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
+                high_occupancy_room_cost, occupancy, num_paying, num_chaperones
+            )
 
     return costs_by_occupancy
+
+def calculate_room_cost_for_occupancy(room_cost, occupancy, num_paying, num_chaperones):
+    """Helper function to calculate room cost for a specific occupancy"""
+    # Calculate chaperone rooms needed (2 per room)
+    chaperone_rooms = calculate_chaperone_hotel_rooms(num_chaperones)
+    chaperone_room_cost = chaperone_rooms * room_cost
+
+    # Calculate rooms needed for paying participants
+    paying_rooms = np.ceil(num_paying / occupancy)
+    paying_room_cost = paying_rooms * room_cost
+
+    # Total room cost distributed among paying participants
+    total_room_costs = paying_room_cost + chaperone_room_cost
+    cost_per_paying = total_room_costs / num_paying if num_paying > 0 else 0
+
+    return cost_per_paying
 
 def calculate_chaperone_count(num_paying, ratio=None, fixed_count=None):
     """Calculate number of free chaperones based on ratio or fixed count"""

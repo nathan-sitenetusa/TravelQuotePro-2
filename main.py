@@ -22,8 +22,11 @@ def main():
         st.session_state.hotels = [{
             'name': '',
             'cost_per_room': None,
+            'high_occupancy_cost': None,
+            'has_high_occupancy': False,
             'tax_rate': None,
-            'occupancy_options': [4, 5, 6, 7, 8]
+            'occupancy_options': [3, 4, 5],
+            'high_occupancy_options': [6, 7, 8]
         }]
 
     # Group Information
@@ -120,28 +123,34 @@ def main():
             st.session_state.hotels.append({
                 'name': '',
                 'cost_per_room': None,
+                'high_occupancy_cost': None,
+                'has_high_occupancy': False,
                 'tax_rate': None,
-                'occupancy_options': [4, 5, 6, 7, 8]
+                'occupancy_options': [3, 4, 5],
+                'high_occupancy_options': [6, 7, 8]
             })
 
         for i, hotel in enumerate(st.session_state.hotels):
             st.markdown(f"### Hotel {i+1}")
-            col1, col2 = st.columns(2)
 
+            # Hotel Name
+            st.session_state.hotels[i]['name'] = st.text_input(
+                "Hotel Name",
+                value=hotel['name'],
+                key=f"hotel_name_{i}"
+            )
+
+            col1, col2 = st.columns(2)
             with col1:
-                st.session_state.hotels[i]['name'] = st.text_input(
-                    "Hotel Name",
-                    value=hotel['name'],
-                    key=f"hotel_name_{i}"
-                )
+                # Standard occupancy rate
                 st.session_state.hotels[i]['cost_per_room'] = st.number_input(
-                    "Cost per Room per Night",
+                    "Standard Rate (1-5 persons)",
                     min_value=0.0,
                     value=0.0,
                     key=f"room_cost_{i}"
                 )
 
-            with col2:
+                # Tax rate
                 st.session_state.hotels[i]['tax_rate'] = st.number_input(
                     "Tax Rate (%)",
                     min_value=0.0,
@@ -149,13 +158,44 @@ def main():
                     value=0.0,
                     key=f"tax_rate_{i}"
                 )
-                st.session_state.hotels[i]['occupancy_options'] = st.multiselect(
-                    "Available Room Occupancies",
-                    options=[3, 4, 5, 6, 7, 8],
-                    default=[4, 5, 6, 7, 8],
-                    key=f"occupancy_{i}",
-                    help="Select all possible room occupancies for this hotel"
+
+            with col2:
+                # High occupancy option
+                st.session_state.hotels[i]['has_high_occupancy'] = st.checkbox(
+                    "Enable 6-8 Person Rate",
+                    value=hotel['has_high_occupancy'],
+                    key=f"high_occupancy_enabled_{i}"
                 )
+
+                if st.session_state.hotels[i]['has_high_occupancy']:
+                    st.session_state.hotels[i]['high_occupancy_cost'] = st.number_input(
+                        "High Occupancy Rate (6-8 persons)",
+                        min_value=0.0,
+                        value=0.0,
+                        key=f"high_occupancy_cost_{i}"
+                    )
+
+            # Occupancy options
+            st.session_state.hotels[i]['occupancy_options'] = sorted(
+                st.multiselect(
+                    "Standard Occupancy Options (1-5)",
+                    options=[3, 4, 5],
+                    default=[3, 4, 5],
+                    key=f"occupancy_{i}"
+                )
+            )
+
+            if st.session_state.hotels[i]['has_high_occupancy']:
+                st.session_state.hotels[i]['high_occupancy_options'] = sorted(
+                    st.multiselect(
+                        "High Occupancy Options (6-8)",
+                        options=[6, 7, 8],
+                        default=[6, 7, 8],
+                        key=f"high_occupancy_{i}"
+                    )
+                )
+            else:
+                st.session_state.hotels[i]['high_occupancy_options'] = []
 
     # Profit Amount
     profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=50.0)
@@ -171,7 +211,8 @@ def main():
         st.header("Quote Breakdown")
 
         for hotel in st.session_state.hotels:
-            if hotel['name'] and hotel['cost_per_room']:
+            if hotel['name'] and (hotel['cost_per_room'] or 
+                                (hotel['has_high_occupancy'] and hotel['high_occupancy_cost'])):
                 st.subheader(f"📋 {hotel['name']}")
 
                 # Calculate costs for each occupancy option
