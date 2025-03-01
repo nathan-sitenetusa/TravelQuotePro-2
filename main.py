@@ -207,6 +207,9 @@ def main():
     # Profit Amount
     profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=50.0)
 
+    # Initialize save_button
+    save_button = False
+
     col1, col2 = st.columns(2)
     with col1:
         calculate_button = st.button("Calculate Quotes", type="primary")
