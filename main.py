@@ -42,15 +42,15 @@ def main():
         with col1:
             num_paying = st.number_input("Number of Paying Participants", min_value=1, value=10)
             chaperone_type = st.radio("Chaperone Calculation Method",
-                                    ["Fixed Number", "Ratio (1 per X paid)"])
+                                        ["Fixed Number", "Ratio (1 per X paid)"])
 
             if chaperone_type == "Fixed Number":
                 num_chaperones = st.number_input("Number of FREE Chaperones",
-                                               min_value=0, value=1)
+                                                min_value=0, value=1)
                 chaperone_ratio = None
             else:
                 chaperone_ratio = st.number_input("Number of Paying per FREE Chaperone",
-                                                min_value=1, value=10)
+                                                 min_value=1, value=10)
                 num_chaperones = calculate_chaperone_count(num_paying, ratio=chaperone_ratio)
 
         with col2:
@@ -112,7 +112,7 @@ def main():
             lunch_costs = []
             for i in range(len(st.session_state.lunches)):
                 cost = st.number_input(f"Lunch {i+1} Cost",
-                                    min_value=0.0, value=0.0, key=f"lunch_{i}")
+                                        min_value=0.0, value=0.0, key=f"lunch_{i}")
                 lunch_costs.append(cost)
 
         with col2:
@@ -121,7 +121,7 @@ def main():
             dinner_costs = []
             for i in range(len(st.session_state.dinners)):
                 cost = st.number_input(f"Dinner {i+1} Cost",
-                                    min_value=0.0, value=0.0, key=f"dinner_{i}")
+                                        min_value=0.0, value=0.0, key=f"dinner_{i}")
                 dinner_costs.append(cost)
 
     # Hotel Information
@@ -225,7 +225,7 @@ def main():
         st.header("Quote Breakdown")
 
         for hotel in st.session_state.hotels:
-            if hotel['name'] and (hotel['cost_per_room'] or 
+            if hotel['name'] and (hotel['cost_per_room'] or
                                 (hotel['has_high_occupancy'] and hotel['high_occupancy_cost'])):
                 st.subheader(f"📋 {hotel['name']}")
 
@@ -239,7 +239,7 @@ def main():
 
                     total_per_person = calculate_total_per_person(
                         fixed_costs, guide_cost, total_entry_costs,
-                        total_meal_costs, room_cost, num_paying, num_chaperones,
+                        total_meal_costs, room_cost, num_paying,
                         driver_tip, guide_days
                     )
 
