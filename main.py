@@ -6,10 +6,14 @@ from utils.calculations import (
     calculate_chaperone_count, calculate_room_costs_by_occupancy
 )
 from utils.styling import set_page_style, show_header
+from database import DatabaseManager
 
 def main():
     set_page_style()
     show_header()
+
+    # Initialize database manager
+    db_manager = DatabaseManager()
 
     # Initialize session state
     if 'entry_tickets' not in st.session_state:
@@ -28,6 +32,9 @@ def main():
             'occupancy_options': [3, 4, 5],
             'high_occupancy_options': [6, 7, 8]
         }]
+
+    # Group Name (for saving quotes)
+    group_name = st.text_input("Group/Organization Name")
 
     # Group Information
     with st.expander("Group Information", expanded=True):
@@ -200,10 +207,17 @@ def main():
     # Profit Amount
     profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=50.0)
 
-    if st.button("Calculate Quotes", type="primary"):
+    col1, col2 = st.columns(2)
+    with col1:
+        calculate_button = st.button("Calculate Quotes", type="primary")
+    with col2:
+        if group_name:
+            save_button = st.button("Save Quote")
+
+    if calculate_button:
         # Calculate components
         fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost,
-                                         num_paying, num_chaperones)
+                                            num_paying, num_chaperones)
         guide_cost = calculate_guide_cost(guide_rate, guide_days, guide_tip)
         total_entry_costs = calculate_entry_costs(entry_costs, num_paying, num_chaperones)
         total_meal_costs = calculate_meal_costs(lunch_costs, dinner_costs, num_paying, num_chaperones)
@@ -247,6 +261,43 @@ def main():
                             st.write(f"{group}: ${price:,.2f}")
 
                     st.markdown("---")
+
+    if save_button and group_name:
+        # Prepare data for saving
+        group_data = {
+            'name': group_name,
+            'num_paying': num_paying,
+            'chaperone_type': chaperone_type,
+            'num_chaperones': num_chaperones,
+            'chaperone_ratio': chaperone_ratio
+        }
+
+        quote_data = {
+            'bus_cost': bus_cost,
+            'metro_cost': metro_cost,
+            'airline_cost': airline_cost,
+            'train_cost': train_cost,
+            'guide_rate': guide_rate,
+            'guide_days': guide_days,
+            'guide_tip': guide_tip,
+            'driver_tip': driver_tip,
+            'profit_amount': profit_amount,
+            'entry_tickets': [
+                {'name': ticket['name'], 'cost': ticket['cost']}
+                for ticket in st.session_state.entry_tickets
+            ],
+            'meals': (
+                [{'type': 'lunch', 'cost': cost} for cost in lunch_costs] +
+                [{'type': 'dinner', 'cost': cost} for cost in dinner_costs]
+            ),
+            'hotels': st.session_state.hotels
+        }
+
+        try:
+            quote_id = db_manager.save_quote(group_data, quote_data)
+            st.success(f"Quote saved successfully! Quote ID: {quote_id}")
+        except Exception as e:
+            st.error(f"Error saving quote: {str(e)}")
 
 if __name__ == "__main__":
     main()
