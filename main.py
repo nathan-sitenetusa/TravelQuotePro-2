@@ -59,7 +59,7 @@ def main():
                     st.success("Quote loaded successfully!")
                     # Store loaded data in session state for form population
                     st.session_state.loaded_data = loaded_data
-                    st.experimental_rerun()
+                    st.rerun()
         else:
             st.info("No saved quotes found.")
 
