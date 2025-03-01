@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, and_
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from models import Base, Group, Quote, Agreement, EntryTicket, Meal, Hotel
 import os
@@ -12,44 +12,6 @@ class DatabaseManager:
         self.engine = create_engine(database_url)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
-
-    def save_hotel_template(self, hotel_data):
-        """Save a hotel as a reusable template"""
-        session = self.Session()
-        try:
-            hotel = Hotel(
-                name=hotel_data['name'],
-                cost_per_room=hotel_data['cost_per_room'],
-                high_occupancy_cost=hotel_data.get('high_occupancy_cost'),
-                has_high_occupancy=hotel_data['has_high_occupancy'],
-                tax_rate=hotel_data['tax_rate'],
-                occupancy_options=','.join(map(str, hotel_data['occupancy_options'])),
-                high_occupancy_options=','.join(map(str, hotel_data.get('high_occupancy_options', []))),
-                is_reusable=True
-            )
-            session.add(hotel)
-            session.commit()
-            return hotel.id
-        finally:
-            session.close()
-
-    def load_hotel_templates(self):
-        """Load all reusable hotel templates"""
-        session = self.Session()
-        try:
-            hotels = session.query(Hotel).filter_by(is_reusable=True).all()
-            return [{
-                'id': hotel.id,
-                'name': hotel.name,
-                'cost_per_room': hotel.cost_per_room,
-                'high_occupancy_cost': hotel.high_occupancy_cost,
-                'has_high_occupancy': hotel.has_high_occupancy,
-                'tax_rate': hotel.tax_rate,
-                'occupancy_options': [int(x) for x in hotel.occupancy_options.split(',') if x],
-                'high_occupancy_options': [int(x) for x in hotel.high_occupancy_options.split(',') if x]
-            } for hotel in hotels]
-        finally:
-            session.close()
 
     def save_quote(self, group_data, quote_data):
         session = self.Session()

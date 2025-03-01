@@ -181,53 +181,27 @@ def main():
 
     # Hotel Information
     with st.expander("Hotel Information", expanded=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("Add New Hotel"):
-                st.session_state.hotels.append({
-                    'name': '',
-                    'cost_per_room': None,
-                    'high_occupancy_cost': None,
-                    'has_high_occupancy': False,
-                    'tax_rate': None,
-                    'occupancy_options': [3, 4, 5],
-                    'high_occupancy_options': [6, 7, 8]
-                })
-
-        with col2:
-            # Load saved hotel templates
-            hotel_templates = db_manager.load_hotel_templates()
-            if hotel_templates:
-                selected_template = st.selectbox(
-                    "Load Saved Hotel",
-                    options=[""] + [h['name'] for h in hotel_templates],
-                    key="hotel_template_selector"
-                )
-
-                if selected_template and st.button("Add Selected Hotel"):
-                    selected_hotel = next(h for h in hotel_templates if h['name'] == selected_template)
-                    st.session_state.hotels.append(selected_hotel)
-                    st.success(f"Added hotel: {selected_hotel['name']}")
-                    st.rerun()
+        if st.button("Add Hotel"):
+            st.session_state.hotels.append({
+                'name': '',
+                'cost_per_room': None,
+                'high_occupancy_cost': None,
+                'has_high_occupancy': False,
+                'tax_rate': None,
+                'occupancy_options': [3, 4, 5],
+                'high_occupancy_options': [6, 7, 8]
+            })
 
         for i, hotel in enumerate(st.session_state.hotels):
             st.markdown(f"### Hotel {i+1}")
-
             col1, col2 = st.columns(2)
+
             with col1:
                 st.session_state.hotels[i]['name'] = st.text_input(
                     "Hotel Name",
                     value=hotel['name'],
                     key=f"hotel_name_{i}"
                 )
-
-                # Save hotel as template option
-                if st.button(f"Save as Template", key=f"save_template_{i}"):
-                    try:
-                        hotel_id = db_manager.save_hotel_template(st.session_state.hotels[i])
-                        st.success(f"Saved hotel template: {st.session_state.hotels[i]['name']}")
-                    except Exception as e:
-                        st.error(f"Error saving hotel template: {str(e)}")
 
                 st.session_state.hotels[i]['cost_per_room'] = st.number_input(
                     "Standard Rate (1-5 persons)",
