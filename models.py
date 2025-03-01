@@ -6,6 +6,23 @@ import os
 
 Base = declarative_base()
 
+class Hotel(Base):
+    __tablename__ = 'hotels'
+
+    id = Column(Integer, primary_key=True)
+    quote_id = Column(Integer, ForeignKey('quotes.id'), nullable=True)  # Made nullable for reusable hotels
+    name = Column(String)
+    cost_per_room = Column(Float)
+    high_occupancy_cost = Column(Float)
+    has_high_occupancy = Column(Boolean, default=False)
+    tax_rate = Column(Float)
+    occupancy_options = Column(String)  # Store as comma-separated string
+    high_occupancy_options = Column(String)  # Store as comma-separated string
+    is_reusable = Column(Boolean, default=False)  # New field for reusable hotels
+
+    # Relationships
+    quote = relationship('Quote', back_populates='hotels')
+
 class Group(Base):
     __tablename__ = 'groups'
     
@@ -85,22 +102,6 @@ class Meal(Base):
     
     # Relationships
     quote = relationship('Quote', back_populates='meals')
-
-class Hotel(Base):
-    __tablename__ = 'hotels'
-    
-    id = Column(Integer, primary_key=True)
-    quote_id = Column(Integer, ForeignKey('quotes.id'), nullable=False)
-    name = Column(String)
-    cost_per_room = Column(Float)
-    high_occupancy_cost = Column(Float)
-    has_high_occupancy = Column(Boolean, default=False)
-    tax_rate = Column(Float)
-    occupancy_options = Column(String)  # Store as comma-separated string
-    high_occupancy_options = Column(String)  # Store as comma-separated string
-    
-    # Relationships
-    quote = relationship('Quote', back_populates='hotels')
 
 # Database connection and initialization
 def init_db():
