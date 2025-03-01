@@ -8,6 +8,18 @@ from utils.calculations import (
 from utils.styling import set_page_style, show_header
 from database import DatabaseManager
 
+def load_saved_data(db_manager, group_id):
+    """Load saved quote data into session state"""
+    data = db_manager.load_quote(group_id)
+    if data:
+        # Update session state with loaded data
+        st.session_state.entry_tickets = data['quote']['entry_tickets']
+        st.session_state.lunches = data['quote']['meals']['lunch']
+        st.session_state.dinners = data['quote']['meals']['dinner']
+        st.session_state.hotels = data['quote']['hotels']
+        return data
+    return None
+
 def main():
     set_page_style()
     show_header()
@@ -33,24 +45,53 @@ def main():
             'high_occupancy_options': [6, 7, 8]
         }]
 
+    # Load Saved Quotes Section
+    with st.expander("Load Saved Quote", expanded=False):
+        groups = db_manager.load_groups()
+        if groups:
+            group_names = {f"{group['name']} (ID: {group['id']})": group['id'] for group in groups}
+            selected_group = st.selectbox("Select a group to load", options=list(group_names.keys()))
+
+            if st.button("Load Quote"):
+                selected_group_id = group_names[selected_group]
+                loaded_data = load_saved_data(db_manager, selected_group_id)
+                if loaded_data:
+                    st.success("Quote loaded successfully!")
+                    # Store loaded data in session state for form population
+                    st.session_state.loaded_data = loaded_data
+                    st.experimental_rerun()
+        else:
+            st.info("No saved quotes found.")
+
+    # Get loaded data if available
+    loaded_data = st.session_state.get('loaded_data', None)
+
     # Group Name (for saving quotes)
-    group_name = st.text_input("Group/Organization Name")
+    initial_name = loaded_data['group']['name'] if loaded_data else ""
+    group_name = st.text_input("Group/Organization Name", value=initial_name)
 
     # Group Information
     with st.expander("Group Information", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            num_paying = st.number_input("Number of Paying Participants", min_value=1, value=10)
+            initial_num_paying = loaded_data['group']['num_paying'] if loaded_data else 10
+            num_paying = st.number_input("Number of Paying Participants", 
+                                       min_value=1, value=initial_num_paying)
+
+            initial_chaperone_type = loaded_data['group']['chaperone_type'] if loaded_data else "Fixed Number"
             chaperone_type = st.radio("Chaperone Calculation Method",
-                                        ["Fixed Number", "Ratio (1 per X paid)"])
+                                    ["Fixed Number", "Ratio (1 per X paid)"],
+                                    index=0 if initial_chaperone_type == "Fixed Number" else 1)
 
             if chaperone_type == "Fixed Number":
+                initial_num_chaperones = loaded_data['group']['num_chaperones'] if loaded_data else 1
                 num_chaperones = st.number_input("Number of FREE Chaperones",
-                                                min_value=0, value=1)
+                                               min_value=0, value=initial_num_chaperones)
                 chaperone_ratio = None
             else:
+                initial_ratio = loaded_data['group']['chaperone_ratio'] if loaded_data else 10
                 chaperone_ratio = st.number_input("Number of Paying per FREE Chaperone",
-                                                 min_value=1, value=10)
+                                                min_value=1, value=initial_ratio)
                 num_chaperones = calculate_chaperone_count(num_paying, ratio=chaperone_ratio)
 
         with col2:
@@ -63,21 +104,33 @@ def main():
     with st.expander("Transportation Costs", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            bus_cost = st.number_input("Bus Cost", min_value=0.0, value=0.0)
-            metro_cost = st.number_input("Metro Cost", min_value=0.0, value=0.0)
+            initial_bus = loaded_data['quote']['bus_cost'] if loaded_data else 0.0
+            bus_cost = st.number_input("Bus Cost", min_value=0.0, value=initial_bus)
+
+            initial_metro = loaded_data['quote']['metro_cost'] if loaded_data else 0.0
+            metro_cost = st.number_input("Metro Cost", min_value=0.0, value=initial_metro)
         with col2:
-            airline_cost = st.number_input("Airline Cost", min_value=0.0, value=0.0)
-            train_cost = st.number_input("Train Cost", min_value=0.0, value=0.0)
+            initial_airline = loaded_data['quote']['airline_cost'] if loaded_data else 0.0
+            airline_cost = st.number_input("Airline Cost", min_value=0.0, value=initial_airline)
+
+            initial_train = loaded_data['quote']['train_cost'] if loaded_data else 0.0
+            train_cost = st.number_input("Train Cost", min_value=0.0, value=initial_train)
 
     # Tour Guide Information
     with st.expander("Tour Guide Information", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            guide_rate = st.number_input("Daily Guide Rate", min_value=0.0, value=0.0)
-            guide_days = st.number_input("Number of Guide Days", min_value=0, value=1)
+            initial_guide_rate = loaded_data['quote']['guide_rate'] if loaded_data else 0.0
+            guide_rate = st.number_input("Daily Guide Rate", min_value=0.0, value=initial_guide_rate)
+
+            initial_guide_days = loaded_data['quote']['guide_days'] if loaded_data else 1
+            guide_days = st.number_input("Number of Guide Days", min_value=0, value=initial_guide_days)
         with col2:
-            guide_tip = st.number_input("Guide Tip per Day", min_value=0.0, value=0.0)
-            driver_tip = st.number_input("Driver Tip per Day", min_value=0.0, value=0.0)
+            initial_guide_tip = loaded_data['quote']['guide_tip'] if loaded_data else 0.0
+            guide_tip = st.number_input("Guide Tip per Day", min_value=0.0, value=initial_guide_tip)
+
+            initial_driver_tip = loaded_data['quote']['driver_tip'] if loaded_data else 0.0
+            driver_tip = st.number_input("Driver Tip per Day", min_value=0.0, value=initial_driver_tip)
 
     # Entry Tickets
     with st.expander("Entry Tickets", expanded=True):
@@ -97,7 +150,7 @@ def main():
                 cost = st.number_input(
                     f"Cost",
                     min_value=0.0,
-                    value=0.0,
+                    value=ticket['cost'] if ticket['cost'] is not None else 0.0,
                     key=f"entry_{i}"
                 )
                 st.session_state.entry_tickets[i]['cost'] = cost
@@ -111,8 +164,9 @@ def main():
                 st.session_state.lunches.append(None)
             lunch_costs = []
             for i in range(len(st.session_state.lunches)):
+                initial_lunch = st.session_state.lunches[i] if st.session_state.lunches[i] is not None else 0.0
                 cost = st.number_input(f"Lunch {i+1} Cost",
-                                        min_value=0.0, value=0.0, key=f"lunch_{i}")
+                                    min_value=0.0, value=initial_lunch, key=f"lunch_{i}")
                 lunch_costs.append(cost)
 
         with col2:
@@ -120,8 +174,9 @@ def main():
                 st.session_state.dinners.append(None)
             dinner_costs = []
             for i in range(len(st.session_state.dinners)):
+                initial_dinner = st.session_state.dinners[i] if st.session_state.dinners[i] is not None else 0.0
                 cost = st.number_input(f"Dinner {i+1} Cost",
-                                        min_value=0.0, value=0.0, key=f"dinner_{i}")
+                                    min_value=0.0, value=initial_dinner, key=f"dinner_{i}")
                 dinner_costs.append(cost)
 
     # Hotel Information
@@ -153,7 +208,7 @@ def main():
                 st.session_state.hotels[i]['cost_per_room'] = st.number_input(
                     "Standard Rate (1-5 persons)",
                     min_value=0.0,
-                    value=0.0,
+                    value=hotel['cost_per_room'] if hotel['cost_per_room'] is not None else 0.0,
                     key=f"room_cost_{i}"
                 )
 
@@ -162,7 +217,7 @@ def main():
                     "Tax Rate (%)",
                     min_value=0.0,
                     max_value=100.0,
-                    value=0.0,
+                    value=hotel['tax_rate'] if hotel['tax_rate'] is not None else 0.0,
                     key=f"tax_rate_{i}"
                 )
 
@@ -178,7 +233,7 @@ def main():
                     st.session_state.hotels[i]['high_occupancy_cost'] = st.number_input(
                         "High Occupancy Rate (6-8 persons)",
                         min_value=0.0,
-                        value=0.0,
+                        value=hotel['high_occupancy_cost'] if hotel['high_occupancy_cost'] is not None else 0.0,
                         key=f"high_occupancy_cost_{i}"
                     )
 
@@ -187,7 +242,7 @@ def main():
                 st.multiselect(
                     "Standard Occupancy Options (1-5)",
                     options=[3, 4, 5],
-                    default=[3, 4, 5],
+                    default=hotel['occupancy_options'],
                     key=f"occupancy_{i}"
                 )
             )
@@ -197,7 +252,7 @@ def main():
                     st.multiselect(
                         "High Occupancy Options (6-8)",
                         options=[6, 7, 8],
-                        default=[6, 7, 8],
+                        default=hotel['high_occupancy_options'],
                         key=f"high_occupancy_{i}"
                     )
                 )
@@ -205,7 +260,8 @@ def main():
                 st.session_state.hotels[i]['high_occupancy_options'] = []
 
     # Profit Amount
-    profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=50.0)
+    initial_profit = loaded_data['quote']['profit_amount'] if loaded_data else 50.0
+    profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=initial_profit)
 
     # Initialize save_button
     save_button = False

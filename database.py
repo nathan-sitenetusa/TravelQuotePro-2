@@ -8,7 +8,7 @@ class DatabaseManager:
         database_url = os.getenv('DATABASE_URL')
         if not database_url:
             raise ValueError("DATABASE_URL environment variable is not set")
-        
+
         self.engine = create_engine(database_url)
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
@@ -83,10 +83,76 @@ class DatabaseManager:
         finally:
             session.close()
 
-    def load_quotes(self):
+    def load_groups(self):
+        """Load all groups with their latest quotes"""
         session = self.Session()
         try:
-            return session.query(Quote).all()
+            groups = session.query(Group).all()
+            return [{'id': group.id, 'name': group.name} for group in groups]
+        finally:
+            session.close()
+
+    def load_quote(self, group_id):
+        """Load a complete quote by group ID"""
+        session = self.Session()
+        try:
+            group = session.query(Group).filter_by(id=group_id).first()
+            if not group:
+                return None
+
+            quote = session.query(Quote).filter_by(group_id=group_id).first()
+            if not quote:
+                return None
+
+            # Load entry tickets
+            entry_tickets = [
+                {'name': ticket.name, 'cost': ticket.cost}
+                for ticket in quote.entry_tickets
+            ]
+
+            # Load meals
+            meals = {
+                'lunch': [meal.cost for meal in quote.meals if meal.type == 'lunch'],
+                'dinner': [meal.cost for meal in quote.meals if meal.type == 'dinner']
+            }
+
+            # Load hotels
+            hotels = []
+            for hotel in quote.hotels:
+                hotel_data = {
+                    'name': hotel.name,
+                    'cost_per_room': hotel.cost_per_room,
+                    'high_occupancy_cost': hotel.high_occupancy_cost,
+                    'has_high_occupancy': hotel.has_high_occupancy,
+                    'tax_rate': hotel.tax_rate,
+                    'occupancy_options': [int(x) for x in hotel.occupancy_options.split(',') if x],
+                    'high_occupancy_options': [int(x) for x in hotel.high_occupancy_options.split(',') if x]
+                }
+                hotels.append(hotel_data)
+
+            return {
+                'group': {
+                    'name': group.name,
+                    'num_paying': group.num_paying,
+                    'chaperone_type': group.chaperone_type,
+                    'num_chaperones': group.num_chaperones,
+                    'chaperone_ratio': group.chaperone_ratio
+                },
+                'quote': {
+                    'bus_cost': quote.bus_cost,
+                    'metro_cost': quote.metro_cost,
+                    'airline_cost': quote.airline_cost,
+                    'train_cost': quote.train_cost,
+                    'guide_rate': quote.guide_rate,
+                    'guide_days': quote.guide_days,
+                    'guide_tip': quote.guide_tip,
+                    'driver_tip': quote.driver_tip,
+                    'profit_amount': quote.profit_amount,
+                    'entry_tickets': entry_tickets,
+                    'meals': meals,
+                    'hotels': hotels
+                }
+            }
         finally:
             session.close()
 
