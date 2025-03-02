@@ -80,25 +80,45 @@ def main():
 
             initial_chaperone_type = loaded_data['group']['chaperone_type'] if loaded_data else "Fixed Number"
             chaperone_type = st.radio("Chaperone Calculation Method",
-                                        ["Fixed Number", "Ratio (1 per X paid)"],
-                                        index=0 if initial_chaperone_type == "Fixed Number" else 1)
+                                    ["Fixed Number", "Ratio (1 per X paid)"],
+                                    index=0 if initial_chaperone_type == "Fixed Number" else 1)
 
             if chaperone_type == "Fixed Number":
                 initial_num_chaperones = loaded_data['group']['num_chaperones'] if loaded_data else 1
                 num_chaperones = st.number_input("Number of FREE Chaperones",
-                                                min_value=0, value=initial_num_chaperones)
+                                               min_value=0, value=initial_num_chaperones)
                 chaperone_ratio = None
             else:
                 initial_ratio = loaded_data['group']['chaperone_ratio'] if loaded_data else 10
                 chaperone_ratio = st.number_input("Number of Paying per FREE Chaperone",
-                                                 min_value=1, value=initial_ratio)
+                                                min_value=1, value=initial_ratio)
                 num_chaperones = calculate_chaperone_count(num_paying, ratio=chaperone_ratio)
+
+            # Add date selectors
+            st.markdown("### Trip Dates")
+            initial_start_date = loaded_data['group'].get('start_date') if loaded_data else None
+            initial_end_date = loaded_data['group'].get('end_date') if loaded_data else None
+
+            start_date = st.date_input(
+                "Trip Start Date",
+                value=initial_start_date if initial_start_date else None,
+                min_value=None
+            )
+            end_date = st.date_input(
+                "Trip End Date",
+                value=initial_end_date if initial_end_date else None,
+                min_value=start_date
+            )
 
         with col2:
             st.markdown("### Group Summary")
             st.write(f"Paying Participants: {num_paying}")
             st.write(f"Free Chaperones: {num_chaperones}")
             st.write(f"Total Participants: {num_paying + num_chaperones}")
+            if start_date and end_date:
+                st.write(f"Trip Duration: {(end_date - start_date).days + 1} days")
+                st.write(f"From: {start_date.strftime('%B %d, %Y')}")
+                st.write(f"To: {end_date.strftime('%B %d, %Y')}")
 
     # Transportation Costs
     with st.expander("Transportation Costs", expanded=True):
@@ -327,7 +347,9 @@ def main():
             'num_paying': num_paying,
             'chaperone_type': chaperone_type,
             'num_chaperones': num_chaperones,
-            'chaperone_ratio': chaperone_ratio
+            'chaperone_ratio': chaperone_ratio,
+            'start_date': start_date,  # New field
+            'end_date': end_date      # New field
         }
 
         quote_data = {

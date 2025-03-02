@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import create_engine, Column, Integer, Float, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, Float, String, Boolean, DateTime, ForeignKey, Date
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
 import os
@@ -31,6 +31,8 @@ class Group(Base):
     chaperone_type = Column(String)  # "Fixed Number" or "Ratio"
     num_chaperones = Column(Integer)
     chaperone_ratio = Column(Integer)
+    start_date = Column(Date)  # New field for trip start date
+    end_date = Column(Date)    # New field for trip end date
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

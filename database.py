@@ -22,7 +22,9 @@ class DatabaseManager:
                 num_paying=group_data['num_paying'],
                 chaperone_type=group_data['chaperone_type'],
                 num_chaperones=group_data['num_chaperones'],
-                chaperone_ratio=group_data.get('chaperone_ratio')
+                chaperone_ratio=group_data.get('chaperone_ratio'),
+                start_date=group_data.get('start_date'),  # New field
+                end_date=group_data.get('end_date')       # New field
             )
             session.add(group)
             session.flush()  # Get the group ID
@@ -136,7 +138,9 @@ class DatabaseManager:
                     'num_paying': group.num_paying,
                     'chaperone_type': group.chaperone_type,
                     'num_chaperones': group.num_chaperones,
-                    'chaperone_ratio': group.chaperone_ratio
+                    'chaperone_ratio': group.chaperone_ratio,
+                    'start_date': group.start_date,  # New field
+                    'end_date': group.end_date       # New field
                 },
                 'quote': {
                     'bus_cost': quote.bus_cost,
