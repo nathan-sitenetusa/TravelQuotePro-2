@@ -1,11 +1,13 @@
 import streamlit as st
 import numpy as np
+import os
 from utils.calculations import (
     calculate_fixed_costs, calculate_guide_cost, calculate_entry_costs,
     calculate_meal_costs, calculate_total_per_person, calculate_final_price,
     calculate_chaperone_count, calculate_room_costs_by_occupancy
 )
 from utils.styling import set_page_style, show_header
+from utils.pdf_generator import generate_quote_pdf
 from database import DatabaseManager
 
 def load_saved_data(db_manager, group_id):
@@ -386,6 +388,49 @@ def main():
                 st.success(f"Quote saved successfully! Quote ID: {quote_id}")
         except Exception as e:
             st.error(f"Error saving quote: {str(e)}")
+
+    if st.session_state.current_group_id and calculate_button:
+        st.markdown("---")
+        if st.button("Generate PDF Quote"):
+            try:
+                # Create quotes directory if it doesn't exist
+                os.makedirs("quotes", exist_ok=True)
+
+                # Generate PDF
+                pdf_path = f"quotes/quote_{st.session_state.current_group_id}.pdf"
+                current_quote = {
+                    'group': {
+                        'name': group_name,
+                        'num_paying': num_paying,
+                        'num_chaperones': num_chaperones
+                    },
+                    'quote': {
+                        'bus_cost': bus_cost,
+                        'metro_cost': metro_cost,
+                        'airline_cost': airline_cost,
+                        'train_cost': train_cost,
+                        'guide_rate': guide_rate,
+                        'guide_days': guide_days,
+                        'guide_tip': guide_tip,
+                        'driver_tip': driver_tip,
+                        'profit_amount': profit_amount,
+                        'entry_tickets': st.session_state.entry_tickets,
+                        'meals': [{'type':'lunch','cost':cost} for cost in lunch_costs] + [{'type':'dinner','cost':cost} for cost in dinner_costs],
+                        'hotels': st.session_state.hotels
+                    }
+                }
+
+                generate_quote_pdf(current_quote, pdf_path)
+
+                with open(pdf_path, "rb") as pdf_file:
+                    st.download_button(
+                        label="Download Quote PDF",
+                        data=pdf_file,
+                        file_name=f"travel_quote_{group_name.replace(' ', '_')}.pdf",
+                        mime="application/pdf"
+                    )
+            except Exception as e:
+                st.error(f"Error generating PDF: {str(e)}")
 
 if __name__ == "__main__":
     main()
