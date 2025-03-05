@@ -51,20 +51,35 @@ def main():
         if groups:
             group_names = {f"{group['name']} (ID: {group['id']})": group['id'] for group in groups}
             selected_group = st.selectbox("Select a group to load", options=list(group_names.keys()))
+            selected_group_id = group_names[selected_group]
 
-            if st.button("Load Quote"):
-                selected_group_id = group_names[selected_group]
-                loaded_data = load_saved_data(db_manager, selected_group_id)
-                if loaded_data:
-                    st.success("Quote loaded successfully!")
-                    # Store loaded data in session state for form population
-                    st.session_state.loaded_data = loaded_data
-                    st.rerun()
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                if st.button("Load Quote"):
+                    loaded_data = load_saved_data(db_manager, selected_group_id)
+                    if loaded_data:
+                        st.success("Quote loaded successfully!")
+                        # Store loaded data in session state for form population
+                        st.session_state.loaded_data = loaded_data
+                        st.rerun()
+
+            with col2:
+                if st.button("Delete Group", type="secondary"):
+                    try:
+                        if db_manager.delete_group(selected_group_id):
+                            st.success("Group deleted successfully!")
+                            # Clear session state
+                            if 'loaded_data' in st.session_state:
+                                del st.session_state.loaded_data
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Error deleting group: {str(e)}")
         else:
             st.info("No saved quotes found.")
 
     # Get loaded data if available
     loaded_data = st.session_state.get('loaded_data', None)
+    current_group_id = loaded_data['group']['id'] if loaded_data else None
 
     # Group Name (for saving quotes)
     initial_name = loaded_data['group']['name'] if loaded_data else ""
@@ -285,12 +300,22 @@ def main():
     # Initialize save_button
     save_button = False
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         calculate_button = st.button("Calculate Quotes", type="primary")
     with col2:
-        if group_name:
-            save_button = st.button("Save Quote")
+        if group_name and not current_group_id:
+            save_button = st.button("Save New Quote")
+        elif group_name and current_group_id:
+            save_button = st.button("Update Quote")
+    with col3:
+        if current_group_id:
+            new_quote_button = st.button("Create New Quote")
+            if new_quote_button:
+                # Clear loaded data to start fresh
+                if 'loaded_data' in st.session_state:
+                    del st.session_state.loaded_data
+                st.rerun()
 
     if calculate_button:
         # Calculate components
@@ -348,8 +373,8 @@ def main():
             'chaperone_type': chaperone_type,
             'num_chaperones': num_chaperones,
             'chaperone_ratio': chaperone_ratio,
-            'start_date': start_date,  # New field
-            'end_date': end_date      # New field
+            'start_date': start_date,
+            'end_date': end_date
         }
 
         quote_data = {
@@ -374,8 +399,14 @@ def main():
         }
 
         try:
-            quote_id = db_manager.save_quote(group_data, quote_data)
-            st.success(f"Quote saved successfully! Quote ID: {quote_id}")
+            if current_group_id:
+                # Update existing quote
+                quote_id = db_manager.update_quote(current_group_id, group_data, quote_data)
+                st.success(f"Quote updated successfully! Quote ID: {quote_id}")
+            else:
+                # Save new quote
+                quote_id = db_manager.save_quote(group_data, quote_data)
+                st.success(f"Quote saved successfully! Quote ID: {quote_id}")
         except Exception as e:
             st.error(f"Error saving quote: {str(e)}")
 
