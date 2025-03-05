@@ -78,7 +78,7 @@ def main():
 
             col1, col2, col3 = st.columns(3)
             with col1:
-                if st.button("Load Quote"):
+                if st.button("Load Quote", key="load_quote_btn"):
                     loaded_data = load_saved_data(db_manager, selected_group_id)
                     if loaded_data:
                         st.success("Quote loaded successfully!")
@@ -87,7 +87,7 @@ def main():
                         st.rerun()
 
             with col2:
-                if st.button("Delete Group", type="secondary"):
+                if st.button("Delete Group", type="secondary", key="delete_group_btn"):
                     try:
                         if db_manager.delete_group(selected_group_id):
                             st.success("Group deleted successfully!")
@@ -98,7 +98,7 @@ def main():
                         st.error(f"Error deleting group: {str(e)}")
 
             with col3:
-                if st.button("Create New Quote"):
+                if st.button("Create New Quote", key="create_new_quote_btn"):
                     st.session_state.create_new_quote = True
                     st.rerun()
         else:
@@ -196,7 +196,7 @@ def main():
 
     # Entry Tickets
     with st.expander("Entry Tickets", expanded=True):
-        if st.button("Add Entry Ticket"):
+        if st.button("Add Entry Ticket", key="add_entry_ticket_btn"):
             st.session_state.entry_tickets.append({'name': '', 'cost': None})
 
         entry_costs = []
@@ -222,7 +222,7 @@ def main():
     with st.expander("Meal Costs (Per Person)", expanded=True):
         col1, col2 = st.columns(2)
         with col1:
-            if st.button("Add Lunch"):
+            if st.button("Add Lunch", key="add_lunch_btn"):
                 st.session_state.lunches.append(None)
             lunch_costs = []
             for i in range(len(st.session_state.lunches)):
@@ -232,7 +232,7 @@ def main():
                 lunch_costs.append(cost)
 
         with col2:
-            if st.button("Add Dinner"):
+            if st.button("Add Dinner", key="add_dinner_btn"):
                 st.session_state.dinners.append(None)
             dinner_costs = []
             for i in range(len(st.session_state.dinners)):
@@ -243,7 +243,7 @@ def main():
 
     # Hotel Information
     with st.expander("Hotel Information", expanded=True):
-        if st.button("Add Hotel"):
+        if st.button("Add Hotel", key="add_hotel_btn"):
             st.session_state.hotels.append({
                 'name': '',
                 'cost_per_room': None,
@@ -329,15 +329,15 @@ def main():
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        calculate_button = st.button("Calculate Quotes", type="primary")
+        calculate_button = st.button("Calculate Quotes", type="primary", key="calculate_quotes_btn")
     with col2:
         if group_name and not current_group_id:
-            save_button = st.button("Save New Quote")
+            save_button = st.button("Save New Quote", key="save_new_quote_btn")
         elif group_name and current_group_id:
-            save_button = st.button("Update Quote")
+            save_button = st.button("Update Quote", key="update_quote_btn")
     with col3:
         if current_group_id:
-            new_quote_button = st.button("Create New Quote")
+            new_quote_button = st.button("Create New Quote", key="create_new_quote_action_btn")
             if new_quote_button:
                 # Clear loaded data and session state
                 st.session_state.create_new_quote = True

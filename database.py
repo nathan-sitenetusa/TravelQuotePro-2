@@ -9,7 +9,18 @@ class DatabaseManager:
         if not database_url:
             raise ValueError("DATABASE_URL environment variable is not set")
 
-        self.engine = create_engine(database_url)
+        # Add SSL mode to handle connection issues
+        connect_args = {
+            "sslmode": "require",
+            "connect_timeout": 30
+        }
+
+        self.engine = create_engine(
+            database_url,
+            connect_args=connect_args,
+            pool_pre_ping=True,  # Enable connection health checks
+            pool_recycle=300     # Recycle connections every 5 minutes
+        )
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
