@@ -134,13 +134,14 @@ class DatabaseManager:
 
             return {
                 'group': {
+                    'id': group.id,  # Added group ID
                     'name': group.name,
                     'num_paying': group.num_paying,
                     'chaperone_type': group.chaperone_type,
                     'num_chaperones': group.num_chaperones,
                     'chaperone_ratio': group.chaperone_ratio,
-                    'start_date': group.start_date,  # New field
-                    'end_date': group.end_date       # New field
+                    'start_date': group.start_date,
+                    'end_date': group.end_date
                 },
                 'quote': {
                     'bus_cost': quote.bus_cost,
