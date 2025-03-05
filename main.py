@@ -73,15 +73,31 @@ def main():
         groups = db_manager.load_groups()
         if groups:
             group_names = {f"{group['name']} (ID: {group['id']})": group['id'] for group in groups}
-            selected_group = st.selectbox("Select a group to load", options=list(group_names.keys()))
+            col1, col2 = st.columns(2)
 
-            if st.button("Load Quote"):
+            with col1:
+                selected_group = st.selectbox("Select a group to load", options=list(group_names.keys()))
                 selected_group_id = group_names[selected_group]
-                loaded_data = load_saved_data(db_manager, selected_group_id)
-                if loaded_data:
-                    st.success("Quote loaded successfully!")
-                    st.session_state.loaded_data = loaded_data
-                    st.rerun()
+
+            with col2:
+                st.markdown("<br>", unsafe_allow_html=True)  # Add spacing
+                col2_1, col2_2 = st.columns(2)
+                with col2_1:
+                    if st.button("Load Quote"):
+                        loaded_data = load_saved_data(db_manager, selected_group_id)
+                        if loaded_data:
+                            st.success("Quote loaded successfully!")
+                            st.session_state.loaded_data = loaded_data
+                            st.rerun()
+                with col2_2:
+                    if st.button("Delete Group", type="secondary"):
+                        if st.button("Confirm Delete", type="primary", key="confirm_delete"):
+                            try:
+                                db_manager.delete_group(selected_group_id)
+                                st.success("Group deleted successfully!")
+                                st.rerun()
+                            except Exception as e:
+                                st.error(f"Error deleting group: {str(e)}")
         else:
             st.info("No saved quotes found.")
 

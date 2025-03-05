@@ -186,3 +186,32 @@ class DatabaseManager:
             return agreement.id
         finally:
             session.close()
+
+    def delete_group(self, group_id):
+        """Delete a group and all its associated data"""
+        session = self.Session()
+        try:
+            group = session.query(Group).filter_by(id=group_id).first()
+            if not group:
+                raise ValueError(f"No group found with ID: {group_id}")
+
+            # Get associated quote
+            quote = session.query(Quote).filter_by(group_id=group_id).first()
+            if quote:
+                # Delete related records
+                session.query(EntryTicket).filter_by(quote_id=quote.id).delete()
+                session.query(Meal).filter_by(quote_id=quote.id).delete()
+                session.query(Hotel).filter_by(quote_id=quote.id).delete()
+                session.query(Agreement).filter_by(quote_id=quote.id).delete()
+                # Delete quote
+                session.delete(quote)
+
+            # Delete group
+            session.delete(group)
+            session.commit()
+            return True
+        except Exception as e:
+            session.rollback()
+            raise e
+        finally:
+            session.close()
