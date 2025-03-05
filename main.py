@@ -304,7 +304,7 @@ def main():
     if calculate_button:
         # Calculate components
         fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost,
-                                            num_paying, num_chaperones)
+                                           num_paying, num_chaperones)
         guide_cost = calculate_guide_cost(guide_rate, guide_days, guide_tip)
         total_entry_costs = calculate_entry_costs(entry_costs, num_paying, num_chaperones)
         total_meal_costs = calculate_meal_costs(lunch_costs, dinner_costs, num_paying, num_chaperones)
@@ -349,6 +349,20 @@ def main():
 
                     st.markdown("---")
 
+        # Store calculated values in session state for PDF generation
+        if not hasattr(st.session_state, 'calculated_values'):
+            st.session_state.calculated_values = {}
+
+        st.session_state.calculated_values = {
+            'fixed_costs': fixed_costs,
+            'guide_cost': guide_cost,
+            'total_entry_costs': total_entry_costs,
+            'total_meal_costs': total_meal_costs,
+            'room_costs_by_occupancy': room_costs_by_occupancy,
+            'price_tiers': price_tiers
+        }
+
+    # Save/Update Quote logic remains unchanged
     if save_button and group_name:
         # Prepare data for saving
         group_data = {
@@ -389,48 +403,59 @@ def main():
         except Exception as e:
             st.error(f"Error saving quote: {str(e)}")
 
-    if st.session_state.current_group_id and calculate_button:
+    # PDF Generation Section - Moved outside calculate_button condition
+    if st.session_state.current_group_id and group_name:
         st.markdown("---")
-        if st.button("Generate PDF Quote"):
-            try:
-                # Create quotes directory if it doesn't exist
-                os.makedirs("quotes", exist_ok=True)
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("Generate PDF Quote", key="generate_pdf"):
+                try:
+                    # Create quotes directory if it doesn't exist
+                    os.makedirs("quotes", exist_ok=True)
 
-                # Generate PDF
-                pdf_path = f"quotes/quote_{st.session_state.current_group_id}.pdf"
-                current_quote = {
-                    'group': {
-                        'name': group_name,
-                        'num_paying': num_paying,
-                        'num_chaperones': num_chaperones
-                    },
-                    'quote': {
-                        'bus_cost': bus_cost,
-                        'metro_cost': metro_cost,
-                        'airline_cost': airline_cost,
-                        'train_cost': train_cost,
-                        'guide_rate': guide_rate,
-                        'guide_days': guide_days,
-                        'guide_tip': guide_tip,
-                        'driver_tip': driver_tip,
-                        'profit_amount': profit_amount,
-                        'entry_tickets': st.session_state.entry_tickets,
-                        'meals': [{'type':'lunch','cost':cost} for cost in lunch_costs] + [{'type':'dinner','cost':cost} for cost in dinner_costs],
-                        'hotels': st.session_state.hotels
+                    # Generate PDF
+                    pdf_path = f"quotes/quote_{st.session_state.current_group_id}.pdf"
+                    current_quote = {
+                        'group': {
+                            'name': group_name,
+                            'num_paying': num_paying,
+                            'num_chaperones': num_chaperones
+                        },
+                        'quote': {
+                            'bus_cost': bus_cost,
+                            'metro_cost': metro_cost,
+                            'airline_cost': airline_cost,
+                            'train_cost': train_cost,
+                            'guide_rate': guide_rate,
+                            'guide_days': guide_days,
+                            'guide_tip': guide_tip,
+                            'driver_tip': driver_tip,
+                            'profit_amount': profit_amount,
+                            'entry_tickets': st.session_state.entry_tickets,
+                            'meals': [{'type':'lunch','cost':cost} for cost in lunch_costs] + 
+                                   [{'type':'dinner','cost':cost} for cost in dinner_costs],
+                            'hotels': st.session_state.hotels
+                        }
                     }
-                }
 
-                generate_quote_pdf(current_quote, pdf_path)
+                    generate_quote_pdf(current_quote, pdf_path)
+                    st.session_state.pdf_ready = True
+                    st.session_state.pdf_path = pdf_path
+                    st.success("PDF generated successfully!")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Error generating PDF: {str(e)}")
 
-                with open(pdf_path, "rb") as pdf_file:
+        # Show download button if PDF is ready
+        with col2:
+            if hasattr(st.session_state, 'pdf_ready') and st.session_state.pdf_ready:
+                with open(st.session_state.pdf_path, "rb") as pdf_file:
                     st.download_button(
                         label="Download Quote PDF",
                         data=pdf_file,
                         file_name=f"travel_quote_{group_name.replace(' ', '_')}.pdf",
                         mime="application/pdf"
                     )
-            except Exception as e:
-                st.error(f"Error generating PDF: {str(e)}")
 
 if __name__ == "__main__":
     main()
