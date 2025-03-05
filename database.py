@@ -13,35 +13,55 @@ class DatabaseManager:
         Base.metadata.create_all(self.engine)
         self.Session = sessionmaker(bind=self.engine)
 
-    def save_quote(self, group_data, quote_data):
+    def save_quote(self, group_data, quote_data, existing_group_id=None):
+        """Save or update a quote"""
         session = self.Session()
         try:
-            # Create and save group
-            group = Group(
-                name=group_data['name'],
-                num_paying=group_data['num_paying'],
-                chaperone_type=group_data['chaperone_type'],
-                num_chaperones=group_data['num_chaperones'],
-                chaperone_ratio=group_data.get('chaperone_ratio')
-            )
-            session.add(group)
-            session.flush()  # Get the group ID
+            if existing_group_id:
+                # Update existing group
+                group = session.query(Group).filter_by(id=existing_group_id).first()
+                if not group:
+                    raise ValueError(f"No group found with ID: {existing_group_id}")
 
-            # Create and save quote
-            quote = Quote(
-                group_id=group.id,
-                bus_cost=quote_data['bus_cost'],
-                metro_cost=quote_data['metro_cost'],
-                airline_cost=quote_data['airline_cost'],
-                train_cost=quote_data['train_cost'],
-                guide_rate=quote_data['guide_rate'],
-                guide_days=quote_data['guide_days'],
-                guide_tip=quote_data['guide_tip'],
-                driver_tip=quote_data['driver_tip'],
-                profit_amount=quote_data['profit_amount']
-            )
-            session.add(quote)
-            session.flush()
+                # Update group details
+                group.name = group_data['name']
+                group.num_paying = group_data['num_paying']
+                group.chaperone_type = group_data['chaperone_type']
+                group.num_chaperones = group_data['num_chaperones']
+                group.chaperone_ratio = group_data.get('chaperone_ratio')
+
+                # Get existing quote
+                quote = session.query(Quote).filter_by(group_id=existing_group_id).first()
+
+                # Delete existing related records
+                session.query(EntryTicket).filter_by(quote_id=quote.id).delete()
+                session.query(Meal).filter_by(quote_id=quote.id).delete()
+                session.query(Hotel).filter_by(quote_id=quote.id).delete()
+            else:
+                # Create new group and quote
+                group = Group(
+                    name=group_data['name'],
+                    num_paying=group_data['num_paying'],
+                    chaperone_type=group_data['chaperone_type'],
+                    num_chaperones=group_data['num_chaperones'],
+                    chaperone_ratio=group_data.get('chaperone_ratio')
+                )
+                session.add(group)
+                session.flush()  # Get the group ID
+                quote = Quote(group_id=group.id)
+                session.add(quote)
+                session.flush()
+
+            # Update quote details
+            quote.bus_cost = quote_data['bus_cost']
+            quote.metro_cost = quote_data['metro_cost']
+            quote.airline_cost = quote_data['airline_cost']
+            quote.train_cost = quote_data['train_cost']
+            quote.guide_rate = quote_data['guide_rate']
+            quote.guide_days = quote_data['guide_days']
+            quote.guide_tip = quote_data['guide_tip']
+            quote.driver_tip = quote_data['driver_tip']
+            quote.profit_amount = quote_data['profit_amount']
 
             # Save entry tickets
             for ticket in quote_data['entry_tickets']:
@@ -132,6 +152,7 @@ class DatabaseManager:
 
             return {
                 'group': {
+                    'id': group.id,  
                     'name': group.name,
                     'num_paying': group.num_paying,
                     'chaperone_type': group.chaperone_type,

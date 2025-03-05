@@ -17,6 +17,7 @@ def load_saved_data(db_manager, group_id):
         st.session_state.lunches = data['quote']['meals']['lunch']
         st.session_state.dinners = data['quote']['meals']['dinner']
         st.session_state.hotels = data['quote']['hotels']
+        st.session_state.current_group_id = data['group']['id']  # Store current group ID
         return data
     return None
 
@@ -44,6 +45,8 @@ def main():
             'occupancy_options': [3, 4, 5],
             'high_occupancy_options': [6, 7, 8]
         }]
+    if 'current_group_id' not in st.session_state:
+        st.session_state.current_group_id = None
 
     # Load Saved Quotes Section
     with st.expander("Load Saved Quote", expanded=False):
@@ -262,15 +265,23 @@ def main():
     initial_profit = loaded_data['quote']['profit_amount'] if loaded_data else 50.0
     profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=initial_profit)
 
-    # Initialize save_button
-    save_button = False
-
-    col1, col2 = st.columns(2)
+    # Save/Update buttons
+    col1, col2, col3 = st.columns(3)
     with col1:
         calculate_button = st.button("Calculate Quotes", type="primary")
     with col2:
         if group_name:
-            save_button = st.button("Save Quote")
+            if st.session_state.current_group_id:
+                save_button = st.button("Update Quote")
+            else:
+                save_button = st.button("Save New Quote")
+    with col3:
+        if st.session_state.current_group_id:
+            if st.button("Clear Form"):
+                st.session_state.current_group_id = None
+                st.session_state.loaded_data = None
+                st.rerun()
+
 
     if calculate_button:
         # Calculate components
@@ -352,8 +363,11 @@ def main():
         }
 
         try:
-            quote_id = db_manager.save_quote(group_data, quote_data)
-            st.success(f"Quote saved successfully! Quote ID: {quote_id}")
+            quote_id = db_manager.save_quote(group_data, quote_data, st.session_state.current_group_id)
+            if st.session_state.current_group_id:
+                st.success(f"Quote updated successfully! Quote ID: {quote_id}")
+            else:
+                st.success(f"Quote saved successfully! Quote ID: {quote_id}")
         except Exception as e:
             st.error(f"Error saving quote: {str(e)}")
 
