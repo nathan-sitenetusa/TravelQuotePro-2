@@ -330,6 +330,52 @@ def main():
                     }]
                 st.rerun()
 
+    # Save or update quote logic
+    if save_button and group_name:
+        # Prepare data for saving
+        group_data = {
+            'name': group_name,
+            'num_paying': num_paying,
+            'chaperone_type': chaperone_type,
+            'num_chaperones': num_chaperones,
+            'chaperone_ratio': chaperone_ratio,
+            'start_date': start_date,
+            'end_date': end_date
+        }
+
+        quote_data = {
+            'bus_cost': bus_cost,
+            'metro_cost': metro_cost,
+            'airline_cost': airline_cost,
+            'train_cost': train_cost,
+            'guide_rate': guide_rate,
+            'guide_days': guide_days,
+            'guide_tip': guide_tip,
+            'driver_tip': driver_tip,
+            'profit_amount': profit_amount,
+            'entry_tickets': [
+                {'name': ticket['name'], 'cost': ticket['cost']}
+                for ticket in st.session_state.entry_tickets
+            ],
+            'meals': (
+                [{'type': 'lunch', 'cost': cost} for cost in lunch_costs] +
+                [{'type': 'dinner', 'cost': cost} for cost in dinner_costs]
+            ),
+            'hotels': st.session_state.hotels
+        }
+
+        try:
+            if current_group_id:
+                # Update existing quote
+                quote_id = db_manager.update_quote(current_group_id, group_data, quote_data)
+                st.success(f"Quote updated successfully! Quote ID: {quote_id}")
+            else:
+                # Save new quote
+                quote_id = db_manager.save_quote(group_data, quote_data)
+                st.success(f"Quote saved successfully! Quote ID: {quote_id}")
+        except Exception as e:
+            st.error(f"Error saving quote: {str(e)}")
+
     if calculate_button:
         # Calculate components
         fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost,
@@ -377,51 +423,6 @@ def main():
                             st.write(f"{group}: ${price:,.2f}")
 
                     st.markdown("---")
-
-    if save_button and group_name:
-        # Prepare data for saving
-        group_data = {
-            'name': group_name,
-            'num_paying': num_paying,
-            'chaperone_type': chaperone_type,
-            'num_chaperones': num_chaperones,
-            'chaperone_ratio': chaperone_ratio,
-            'start_date': start_date,
-            'end_date': end_date
-        }
-
-        quote_data = {
-            'bus_cost': bus_cost,
-            'metro_cost': metro_cost,
-            'airline_cost': airline_cost,
-            'train_cost': train_cost,
-            'guide_rate': guide_rate,
-            'guide_days': guide_days,
-            'guide_tip': guide_tip,
-            'driver_tip': driver_tip,
-            'profit_amount': profit_amount,
-            'entry_tickets': [
-                {'name': ticket['name'], 'cost': ticket['cost']}
-                for ticket in st.session_state.entry_tickets
-            ],
-            'meals': (
-                [{'type': 'lunch', 'cost': cost} for cost in lunch_costs] +
-                [{'type': 'dinner', 'cost': cost} for cost in dinner_costs]
-            ),
-            'hotels': st.session_state.hotels
-        }
-
-        try:
-            if current_group_id:
-                # Update existing quote
-                quote_id = db_manager.update_quote(current_group_id, group_data, quote_data)
-                st.success(f"Quote updated successfully! Quote ID: {quote_id}")
-            else:
-                # Save new quote
-                quote_id = db_manager.save_quote(group_data, quote_data)
-                st.success(f"Quote saved successfully! Quote ID: {quote_id}")
-        except Exception as e:
-            st.error(f"Error saving quote: {str(e)}")
 
 if __name__ == "__main__":
     main()
