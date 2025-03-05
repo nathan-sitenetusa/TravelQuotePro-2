@@ -20,6 +20,23 @@ def load_saved_data(db_manager, group_id):
         return data
     return None
 
+def reset_session_state():
+    """Reset all session state variables to their default values"""
+    st.session_state.entry_tickets = [{'name': '', 'cost': None}]
+    st.session_state.lunches = [None]
+    st.session_state.dinners = [None]
+    st.session_state.hotels = [{
+        'name': '',
+        'cost_per_room': None,
+        'high_occupancy_cost': None,
+        'has_high_occupancy': False,
+        'tax_rate': None,
+        'occupancy_options': [3, 4, 5],
+        'high_occupancy_options': [6, 7, 8]
+    }]
+    if 'loaded_data' in st.session_state:
+        del st.session_state.loaded_data
+
 def main():
     set_page_style()
     show_header()
@@ -45,6 +62,12 @@ def main():
             'high_occupancy_options': [6, 7, 8]
         }]
 
+    # Handle Create New Quote action first
+    if st.session_state.get('create_new_quote', False):
+        reset_session_state()
+        st.session_state.create_new_quote = False
+        st.rerun()
+
     # Load Saved Quotes Section
     with st.expander("Load Saved Quote", expanded=False):
         groups = db_manager.load_groups()
@@ -69,11 +92,15 @@ def main():
                         if db_manager.delete_group(selected_group_id):
                             st.success("Group deleted successfully!")
                             # Clear session state
-                            if 'loaded_data' in st.session_state:
-                                del st.session_state.loaded_data
+                            reset_session_state()
                             st.rerun()
                     except Exception as e:
                         st.error(f"Error deleting group: {str(e)}")
+
+            with col3:
+                if st.button("Create New Quote"):
+                    st.session_state.create_new_quote = True
+                    st.rerun()
         else:
             st.info("No saved quotes found.")
 
@@ -313,22 +340,9 @@ def main():
             new_quote_button = st.button("Create New Quote")
             if new_quote_button:
                 # Clear loaded data and session state
-                if 'loaded_data' in st.session_state:
-                    del st.session_state.loaded_data
-                    # Reset other session state variables
-                    st.session_state.entry_tickets = [{'name': '', 'cost': None}]
-                    st.session_state.lunches = [None]
-                    st.session_state.dinners = [None]
-                    st.session_state.hotels = [{
-                        'name': '',
-                        'cost_per_room': None,
-                        'high_occupancy_cost': None,
-                        'has_high_occupancy': False,
-                        'tax_rate': None,
-                        'occupancy_options': [3, 4, 5],
-                        'high_occupancy_options': [6, 7, 8]
-                    }]
+                st.session_state.create_new_quote = True
                 st.rerun()
+
 
     # Save or update quote logic
     if save_button and group_name:
