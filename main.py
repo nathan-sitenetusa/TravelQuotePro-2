@@ -90,14 +90,29 @@ def main():
                             st.session_state.loaded_data = loaded_data
                             st.rerun()
                 with col2_2:
-                    if st.button("Delete Group", type="secondary"):
-                        if st.button("Confirm Delete", type="primary", key="confirm_delete"):
-                            try:
-                                db_manager.delete_group(selected_group_id)
-                                st.success("Group deleted successfully!")
+                    # Initialize delete confirmation state if not exists
+                    if 'delete_confirmation' not in st.session_state:
+                        st.session_state.delete_confirmation = False
+
+                    if not st.session_state.delete_confirmation:
+                        if st.button("Delete Group", type="secondary"):
+                            st.session_state.delete_confirmation = True
+                            st.rerun()
+                    else:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            if st.button("Confirm Delete", type="primary"):
+                                try:
+                                    db_manager.delete_group(selected_group_id)
+                                    st.success("Group deleted successfully!")
+                                    st.session_state.delete_confirmation = False
+                                    st.rerun()
+                                except Exception as e:
+                                    st.error(f"Error deleting group: {str(e)}")
+                        with col2:
+                            if st.button("Cancel", type="secondary"):
+                                st.session_state.delete_confirmation = False
                                 st.rerun()
-                            except Exception as e:
-                                st.error(f"Error deleting group: {str(e)}")
         else:
             st.info("No saved quotes found.")
 
