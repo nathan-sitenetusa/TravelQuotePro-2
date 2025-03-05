@@ -99,20 +99,18 @@ def main():
                             st.session_state.delete_confirmation = True
                             st.rerun()
                     else:
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            if st.button("Confirm Delete", type="primary"):
-                                try:
-                                    db_manager.delete_group(selected_group_id)
-                                    st.success("Group deleted successfully!")
-                                    st.session_state.delete_confirmation = False
-                                    st.rerun()
-                                except Exception as e:
-                                    st.error(f"Error deleting group: {str(e)}")
-                        with col2:
-                            if st.button("Cancel", type="secondary"):
+                        st.warning("Are you sure you want to delete this group?")
+                        if st.button("Confirm Delete", type="primary"):
+                            try:
+                                db_manager.delete_group(selected_group_id)
+                                st.success("Group deleted successfully!")
                                 st.session_state.delete_confirmation = False
                                 st.rerun()
+                            except Exception as e:
+                                st.error(f"Error deleting group: {str(e)}")
+                        if st.button("Cancel", type="secondary"):
+                            st.session_state.delete_confirmation = False
+                            st.rerun()
         else:
             st.info("No saved quotes found.")
 
@@ -330,6 +328,7 @@ def main():
         if st.session_state.current_group_id:
             if st.button("Clear Form"):
                 clear_form()
+
 
 
     if calculate_button:
