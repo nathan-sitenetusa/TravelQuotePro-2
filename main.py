@@ -312,9 +312,22 @@ def main():
         if current_group_id:
             new_quote_button = st.button("Create New Quote")
             if new_quote_button:
-                # Clear loaded data to start fresh
+                # Clear loaded data and session state
                 if 'loaded_data' in st.session_state:
                     del st.session_state.loaded_data
+                    # Reset other session state variables
+                    st.session_state.entry_tickets = [{'name': '', 'cost': None}]
+                    st.session_state.lunches = [None]
+                    st.session_state.dinners = [None]
+                    st.session_state.hotels = [{
+                        'name': '',
+                        'cost_per_room': None,
+                        'high_occupancy_cost': None,
+                        'has_high_occupancy': False,
+                        'tax_rate': None,
+                        'occupancy_options': [3, 4, 5],
+                        'high_occupancy_options': [6, 7, 8]
+                    }]
                 st.rerun()
 
     if calculate_button:
