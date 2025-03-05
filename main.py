@@ -48,6 +48,24 @@ def main():
     if 'current_group_id' not in st.session_state:
         st.session_state.current_group_id = None
 
+    def clear_form():
+        """Reset all form fields to their default values"""
+        st.session_state.current_group_id = None
+        st.session_state.loaded_data = None
+        st.session_state.entry_tickets = [{'name': '', 'cost': None}]
+        st.session_state.lunches = [None]
+        st.session_state.dinners = [None]
+        st.session_state.hotels = [{
+            'name': '',
+            'cost_per_room': None,
+            'high_occupancy_cost': None,
+            'has_high_occupancy': False,
+            'tax_rate': None,
+            'occupancy_options': [3, 4, 5],
+            'high_occupancy_options': [6, 7, 8]
+        }]
+        st.rerun()
+
     # Load Saved Quotes Section
     with st.expander("Load Saved Quote", expanded=False):
         groups = db_manager.load_groups()
@@ -60,7 +78,6 @@ def main():
                 loaded_data = load_saved_data(db_manager, selected_group_id)
                 if loaded_data:
                     st.success("Quote loaded successfully!")
-                    # Store loaded data in session state for form population
                     st.session_state.loaded_data = loaded_data
                     st.rerun()
         else:
@@ -279,9 +296,7 @@ def main():
     with col3:
         if st.session_state.current_group_id:
             if st.button("Clear Form"):
-                st.session_state.current_group_id = None
-                st.session_state.loaded_data = None
-                st.rerun()
+                clear_form()
 
 
     if calculate_button:
