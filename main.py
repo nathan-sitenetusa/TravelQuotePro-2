@@ -270,6 +270,7 @@ def main():
     with col1:
         calculate_button = st.button("Calculate Quotes", type="primary")
     with col2:
+        save_button = False  # Initialize save_button
         if group_name:
             if st.session_state.current_group_id:
                 save_button = st.button("Update Quote")
