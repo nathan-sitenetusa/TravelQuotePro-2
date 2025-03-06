@@ -2,7 +2,7 @@ import streamlit as st
 import numpy as np
 import os
 from utils.calculations import (
-    calculate_fixed_costs, calculate_guide_cost, calculate_entry_costs,
+    calculate_transportation_costs, calculate_guide_cost, calculate_entry_costs,
     calculate_meal_costs, calculate_total_per_person, calculate_final_price,
     calculate_chaperone_count, calculate_room_costs_by_occupancy
 )
@@ -333,8 +333,10 @@ def main():
 
     if calculate_button:
         # Calculate components
-        fixed_costs = calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost,
-                                           num_paying, num_chaperones)
+        transportation_costs = calculate_transportation_costs(
+            bus_cost, metro_cost, airline_cost, train_cost,
+            num_paying, num_chaperones
+        )
         guide_cost = calculate_guide_cost(guide_rate, guide_days, guide_tip)
         total_entry_costs = calculate_entry_costs(entry_costs, num_paying, num_chaperones)
         total_meal_costs = calculate_meal_costs(lunch_costs, dinner_costs, num_paying, num_chaperones)
@@ -351,48 +353,62 @@ def main():
                     hotel, num_paying, num_chaperones
                 )
 
-                for occupancy, room_cost in room_costs_by_occupancy.items():
-                    st.markdown(f"#### {occupancy} People per Room")
+                # Create price table
+                st.markdown("### Price Table by Occupancy and Group Size")
 
-                    total_per_person = calculate_total_per_person(
-                        fixed_costs, guide_cost, total_entry_costs,
-                        total_meal_costs, room_cost, num_paying,
-                        driver_tip, guide_days
-                    )
+                # Get all occupancy options
+                occupancies = sorted(room_costs_by_occupancy.keys())
 
-                    price_tiers = calculate_final_price(total_per_person, profit_amount)
+                # Create the header row
+                header = ["Group Size"] + [f"{occ}/room" for occ in occupancies]
 
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown("**Cost Breakdown (per paying person)**")
-                        st.write(f"Fixed Costs (inc. chaperones): ${fixed_costs:,.2f}")
-                        st.write(f"Guide Costs (inc. tips): ${guide_cost/num_paying:,.2f}")
-                        st.write(f"Entry Tickets (inc. chaperones): ${total_entry_costs:,.2f}")
-                        st.write(f"Meal Costs (inc. chaperones): ${total_meal_costs:,.2f}")
-                        st.write(f"Room Costs (inc. chaperone rooms): ${room_cost:,.2f}")
-                        st.write(f"Driver Tips: ${driver_tip*guide_days/num_paying:,.2f}")
+                # Calculate prices for each occupancy and group size
+                rows = []
+                for range_name, multiplier in {
+                    "10-13 paying": 1.15,
+                    "14-16 paying": 1.10,
+                    "17-20 paying": 1.05,
+                    "21+ paying": 1.00
+                }.items():
+                    row = [range_name]
+                    for occupancy in occupancies:
+                        room_cost = room_costs_by_occupancy[occupancy]
+                        total_per_person = calculate_total_per_person(
+                            transportation_costs, guide_cost, total_entry_costs,
+                            total_meal_costs, room_cost, num_paying,
+                            driver_tip, guide_days
+                        )
+                        final_price = (total_per_person + profit_amount) * multiplier
+                        row.append(f"${final_price:,.2f}")
+                    rows.append(row)
 
-                    with col2:
-                        st.markdown("**Price Tiers (including profit)**")
-                        for group, price in price_tiers.items():
-                            st.write(f"{group}: ${price:,.2f}")
+                # Display the table
+                st.table([header] + rows)
 
-                    st.markdown("---")
+                # Show cost breakdown for reference
+                st.markdown("#### Cost Breakdown (per paying person)")
+                st.write(f"Transportation Costs: ${transportation_costs:,.2f}")
+                st.write(f"Guide Costs (inc. tips): ${guide_cost/num_paying:,.2f}")
+                st.write(f"Entry Tickets (inc. chaperones): ${total_entry_costs:,.2f}")
+                st.write(f"Meal Costs (inc. chaperones): ${total_meal_costs:,.2f}")
+                st.write(f"Driver Tips: ${driver_tip*guide_days/num_paying:,.2f}")
+
+                st.markdown("---")
 
         # Store calculated values in session state for PDF generation
         if not hasattr(st.session_state, 'calculated_values'):
             st.session_state.calculated_values = {}
 
         st.session_state.calculated_values = {
-            'fixed_costs': fixed_costs,
+            'transportation_costs': transportation_costs,
             'guide_cost': guide_cost,
             'total_entry_costs': total_entry_costs,
             'total_meal_costs': total_meal_costs,
             'room_costs_by_occupancy': room_costs_by_occupancy,
-            'price_tiers': price_tiers
+            #'price_tiers': price_tiers # Removed as price tiers are now in the table
         }
 
-    # Save/Update Quote logic remains unchanged
+    # Save/Update Quote logic
     if save_button and group_name:
         # Prepare data for saving
         group_data = {
@@ -433,7 +449,7 @@ def main():
         except Exception as e:
             st.error(f"Error saving quote: {str(e)}")
 
-    # PDF Generation Section - Moved outside calculate_button condition
+    # PDF Generation Section
     if st.session_state.current_group_id and group_name:
         st.markdown("---")
         col1, col2 = st.columns(2)

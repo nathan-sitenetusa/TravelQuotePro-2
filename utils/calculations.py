@@ -1,13 +1,18 @@
 import numpy as np
 
-def calculate_fixed_costs(bus_cost, metro_cost, airline_cost, train_cost, num_paying, num_chaperones):
-    """Calculate total fixed transportation costs including chaperones"""
-    total_fixed_costs = sum(filter(None, [bus_cost, metro_cost, airline_cost, train_cost]))
-    # Calculate cost per person including chaperones
-    cost_per_person = total_fixed_costs / (num_paying + num_chaperones) if num_paying + num_chaperones > 0 else 0
-    # Distribute chaperone costs among paying participants
-    total_per_paying = cost_per_person + (cost_per_person * num_chaperones / num_paying) if num_paying > 0 else 0
-    return total_per_paying
+def calculate_transportation_costs(bus_cost, metro_cost, airline_cost, train_cost, num_paying, num_chaperones):
+    """Calculate total transportation costs with proper distribution of chaperone costs"""
+    # Bus cost is divided equally among paying participants
+    bus_per_paying = bus_cost / num_paying if num_paying > 0 else 0
+
+    # Per person costs (including distribution of chaperone costs)
+    per_person_costs = sum(filter(None, [metro_cost, airline_cost, train_cost]))
+    if per_person_costs > 0 and num_paying > 0:
+        # Add chaperone costs to paying participants
+        chaperone_distribution = (per_person_costs * num_chaperones) / num_paying
+        per_person_costs = per_person_costs + chaperone_distribution
+
+    return bus_per_paying + per_person_costs
 
 def calculate_guide_cost(daily_rate, num_days, guide_tip_per_day=0):
     """Calculate total guide cost including tips"""
@@ -40,18 +45,24 @@ def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
     # Get base room costs with tax
     base_tax_rate = hotel['tax_rate'] / 100 if hotel['tax_rate'] else 0
 
-    # Standard occupancy calculations (1-5 persons)
+    # All possible occupancy options
+    all_occupancies = list(range(1, 6))  # 1-5 persons
+    if hotel['has_high_occupancy']:
+        all_occupancies.extend([6, 7, 8])
+
+    # Calculate costs for each occupancy
     if hotel['cost_per_room']:
         standard_room_cost = hotel['cost_per_room'] * (1 + base_tax_rate)
-        for occupancy in hotel['occupancy_options']:
-            costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
-                standard_room_cost, occupancy, num_paying, num_chaperones
-            )
+        for occupancy in all_occupancies:
+            if occupancy <= 5:
+                costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
+                    standard_room_cost, occupancy, num_paying, num_chaperones
+                )
 
     # High occupancy calculations (6-8 persons)
     if hotel['has_high_occupancy'] and hotel['high_occupancy_cost']:
         high_occupancy_room_cost = hotel['high_occupancy_cost'] * (1 + base_tax_rate)
-        for occupancy in hotel['high_occupancy_options']:
+        for occupancy in [6, 7, 8]:
             costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
                 high_occupancy_room_cost, occupancy, num_paying, num_chaperones
             )
@@ -68,7 +79,7 @@ def calculate_room_cost_for_occupancy(room_cost, occupancy, num_paying, num_chap
     paying_rooms = np.ceil(num_paying / occupancy)
     paying_room_cost = paying_rooms * room_cost
 
-    # Total room cost distributed among paying participants
+    # Total room costs distributed among paying participants
     total_room_costs = paying_room_cost + chaperone_room_cost
     cost_per_paying = total_room_costs / num_paying if num_paying > 0 else 0
 
@@ -82,27 +93,27 @@ def calculate_chaperone_count(num_paying, ratio=None, fixed_count=None):
         return int(np.floor(num_paying / ratio))
     return 0
 
-def calculate_total_per_person(fixed_costs, guide_cost, entry_costs, meal_costs,
-                             room_cost, num_paying, driver_tip_per_day=0,
-                             num_days=1):
+def calculate_total_per_person(transportation_costs, guide_cost, entry_costs, meal_costs,
+                           room_cost, num_paying, driver_tip_per_day=0,
+                           num_days=1):
     """Calculate total cost per person"""
     # Calculate driver tips per paying person
     total_driver_tip = driver_tip_per_day * num_days
     driver_tip_per_person = total_driver_tip / num_paying if num_paying > 0 else 0
 
-    total = (fixed_costs + guide_cost/num_paying + entry_costs +
+    total = (transportation_costs + guide_cost/num_paying + entry_costs +
              meal_costs + room_cost + driver_tip_per_person)
 
     return total
 
 def calculate_final_price(total_cost_per_person, profit_amount):
     """Calculate final price with fixed profit amount"""
-    base_price = total_cost_per_person + profit_amount
-
-    tiers = {
-        "10-13 people": base_price * 1.15,
-        "14-16 people": base_price * 1.10,
-        "17-20 people": base_price * 1.05,
-        "21+ people": base_price
+    participant_ranges = {
+        "10-13 paying": 1.15,
+        "14-16 paying": 1.10,
+        "17-20 paying": 1.05,
+        "21+ paying": 1.00
     }
-    return tiers
+
+    base_price = total_cost_per_person + profit_amount
+    return {range_name: base_price * multiplier for range_name, multiplier in participant_ranges.items()}
