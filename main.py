@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import os
+import math
 from utils.calculations import (
     calculate_transportation_costs, calculate_guide_cost, calculate_entry_costs,
     calculate_meal_costs, calculate_total_per_person, calculate_final_price,
@@ -344,6 +345,9 @@ def main():
 
 
     if calculate_button:
+        # Initialize room_costs_by_occupancy
+        room_costs_by_occupancy = {}
+        
         # Calculate components
         transportation_costs = calculate_transportation_costs(
             bus_cost, metro_cost, airline_cost, train_cost,
@@ -390,8 +394,8 @@ def main():
                             total_meal_costs, room_cost, num_paying,
                             driver_tip, guide_days
                         )
-                        final_price = (total_per_person + profit_amount) * multiplier
-                        row.append(f"${final_price:,.2f}")
+                        final_price = math.ceil((total_per_person + profit_amount) * multiplier)
+                        row.append(f"${final_price:,}")
                     rows.append(row)
 
                 # Display the table
