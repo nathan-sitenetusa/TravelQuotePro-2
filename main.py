@@ -129,7 +129,7 @@ def main():
         col1, col2 = st.columns(2)
         with col1:
             initial_num_paying = loaded_data['group']['num_paying'] if loaded_data else 10
-            num_paying = st.number_input("Number of Paying Participants", 
+            num_paying = st.number_input("Number of Paying Participants",
                                        min_value=1, value=initial_num_paying)
 
             initial_chaperone_type = loaded_data['group']['chaperone_type'] if loaded_data else "Fixed Number"
@@ -343,11 +343,10 @@ def main():
                 clear_form()
 
 
-
     if calculate_button:
         # Initialize room_costs_by_occupancy
         room_costs_by_occupancy = {}
-        
+
         # Calculate components
         transportation_costs = calculate_transportation_costs(
             bus_cost, metro_cost, airline_cost, train_cost,
@@ -389,12 +388,22 @@ def main():
                     row = [range_name]
                     for occupancy in occupancies:
                         room_cost = room_costs_by_occupancy[occupancy]
-                        total_per_person = calculate_total_per_person(
+
+                        # Calculate non-hotel costs first
+                        base_costs = calculate_total_per_person(
                             transportation_costs, guide_cost, total_entry_costs,
-                            total_meal_costs, room_cost, num_paying,
+                            total_meal_costs, 0, num_paying,  # Set room_cost to 0 here
                             driver_tip, guide_days
                         )
-                        final_price = math.ceil((total_per_person + profit_amount) * multiplier)
+
+                        # Apply multiplier only to base costs and profit
+                        adjusted_base_costs = (base_costs + profit_amount) * multiplier
+
+                        # Add hotel costs separately (no multiplier)
+                        final_price = adjusted_base_costs + room_cost
+
+                        # Round to whole dollars
+                        final_price = math.ceil(final_price)
                         row.append(f"${final_price:,}")
                     rows.append(row)
 
