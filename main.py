@@ -342,8 +342,8 @@ def main():
             if st.button("Clear Form"):
                 clear_form()
 
-
-    if calculate_button:
+    # Always calculate quotes if we have the necessary information
+    if num_paying > 0:
         # Initialize room_costs_by_occupancy
         room_costs_by_occupancy = {}
 
@@ -359,8 +359,7 @@ def main():
         st.header("Quote Breakdown")
 
         for hotel in st.session_state.hotels:
-            if hotel['name'] and (hotel['cost_per_room'] or
-                                (hotel['has_high_occupancy'] and hotel['high_occupancy_cost'])):
+            if hotel['cost_per_room'] or (hotel['has_high_occupancy'] and hotel['high_occupancy_cost']):
                 st.subheader(f"📋 {hotel['name']}")
 
                 # Calculate costs for each occupancy option
