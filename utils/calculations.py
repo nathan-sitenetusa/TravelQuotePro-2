@@ -84,7 +84,8 @@ def calculate_room_cost_for_occupancy(room_cost, occupancy, num_paying, num_chap
     total_room_costs = paying_room_cost + chaperone_room_cost
     cost_per_paying = total_room_costs / num_paying if num_paying > 0 else 0
 
-    return cost_per_paying
+    # Round to 2 decimal places
+    return round(cost_per_paying, 2)
 
 def calculate_chaperone_count(num_paying, ratio=None, fixed_count=None):
     """Calculate number of free chaperones based on ratio or fixed count"""
