@@ -391,6 +391,8 @@ def main():
                 st.write(f"Guide Costs (inc. tips): ${guide_cost/num_paying:,.2f}")
                 st.write(f"Entry Tickets (inc. chaperones): ${total_entry_costs:,.2f}")
                 st.write(f"Meal Costs (inc. chaperones): ${total_meal_costs:,.2f}")
+                if any(room_costs_by_occupancy.values()):
+                    st.write(f"Room Costs (sample for {list(room_costs_by_occupancy.keys())[0]}/room): ${list(room_costs_by_occupancy.values())[0]:,.2f}")
                 st.write(f"Driver Tips: ${driver_tip*guide_days/num_paying:,.2f}")
 
                 st.markdown("---")

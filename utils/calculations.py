@@ -101,8 +101,12 @@ def calculate_total_per_person(transportation_costs, guide_cost, entry_costs, me
     total_driver_tip = driver_tip_per_day * num_days
     driver_tip_per_person = total_driver_tip / num_paying if num_paying > 0 else 0
 
-    total = (transportation_costs + guide_cost/num_paying + entry_costs +
-             meal_costs + room_cost + driver_tip_per_person)
+    total = (transportation_costs +  # Transportation costs (already includes chaperone distribution)
+             guide_cost/num_paying + # Guide costs divided by paying participants
+             entry_costs +          # Entry costs (already includes chaperone distribution)
+             meal_costs +           # Meal costs (already includes chaperone distribution)
+             room_cost +           # Room costs (includes chaperone rooms distributed)
+             driver_tip_per_person) # Driver tips per paying person
 
     return total
 
