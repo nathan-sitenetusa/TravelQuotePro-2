@@ -16,6 +16,7 @@ class Hotel(Base):
     high_occupancy_cost = Column(Float)
     has_high_occupancy = Column(Boolean, default=False)
     tax_rate = Column(Float)
+    num_nights = Column(Integer, default=1)  # Added number of nights
     occupancy_options = Column(String)  # Store as comma-separated string
     high_occupancy_options = Column(String)  # Store as comma-separated string
 

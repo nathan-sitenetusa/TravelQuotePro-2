@@ -44,6 +44,7 @@ def main():
             'high_occupancy_cost': None,
             'has_high_occupancy': False,
             'tax_rate': None,
+            'num_nights': 1,  # Added default value
             'occupancy_options': [3, 4, 5],
             'high_occupancy_options': [6, 7, 8]
         }]
@@ -63,6 +64,7 @@ def main():
             'high_occupancy_cost': None,
             'has_high_occupancy': False,
             'tax_rate': None,
+            'num_nights': 1,  # Added default value
             'occupancy_options': [3, 4, 5],
             'high_occupancy_options': [6, 7, 8]
         }]
@@ -239,6 +241,7 @@ def main():
                 'high_occupancy_cost': None,
                 'has_high_occupancy': False,
                 'tax_rate': None,
+                'num_nights': 1, # Added default value
                 'occupancy_options': [3, 4, 5],
                 'high_occupancy_options': [6, 7, 8]
             })
@@ -293,6 +296,15 @@ def main():
                     key=f"occupancy_{i}"
                 )
             )
+
+            #Added Number of Nights input here
+            st.session_state.hotels[i]['num_nights'] = st.number_input(
+                "Number of Nights",
+                min_value=1,
+                value=hotel['num_nights'] if 'num_nights' in hotel and hotel['num_nights'] is not None else 1,
+                key=f"num_nights_{i}"
+            )
+
 
             if st.session_state.hotels[i]['has_high_occupancy']:
                 st.session_state.hotels[i]['high_occupancy_options'] = sorted(
