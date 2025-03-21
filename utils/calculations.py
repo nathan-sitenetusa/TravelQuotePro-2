@@ -50,17 +50,16 @@ def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
     if hotel['cost_per_room']:
         standard_room_cost = hotel['cost_per_room'] * num_nights * (1 + base_tax_rate)
         for occupancy in [1, 2, 3, 4, 5]:  # Always calculate for all standard occupancies
-            costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
-                standard_room_cost, occupancy, num_paying, num_chaperones
-            )
+            room_cost = standard_room_cost  # Cost for one room for all nights with tax
+            cost_per_person = room_cost / occupancy  # Divide by number of people in room
+            costs_by_occupancy[occupancy] = cost_per_person
 
     # High occupancy calculations (6-8 persons)
     if hotel['has_high_occupancy'] and hotel['high_occupancy_cost']:
         high_occupancy_room_cost = hotel['high_occupancy_cost'] * num_nights * (1 + base_tax_rate)
         for occupancy in [6, 7, 8]:
-            costs_by_occupancy[occupancy] = calculate_room_cost_for_occupancy(
-                high_occupancy_room_cost, occupancy, num_paying, num_chaperones
-            )
+            cost_per_person = high_occupancy_room_cost / occupancy
+            costs_by_occupancy[occupancy] = cost_per_person
 
     return costs_by_occupancy
 

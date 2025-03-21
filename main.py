@@ -390,10 +390,12 @@ def main():
                         room_cost = room_costs_by_occupancy[occupancy]
 
                         # Calculate non-hotel costs first
-                        base_costs = calculate_total_per_person(
-                            transportation_costs, guide_cost, total_entry_costs,
-                            total_meal_costs, 0, num_paying,  # Set room_cost to 0 here
-                            driver_tip, guide_days
+                        base_costs = (
+                            transportation_costs +  # Transportation costs
+                            guide_cost/num_paying + # Guide costs divided by paying participants
+                            total_entry_costs +    # Entry costs (already includes chaperone distribution)
+                            total_meal_costs +     # Meal costs (already includes chaperone distribution)
+                            driver_tip*guide_days/num_paying  # Driver tips per paying person
                         )
 
                         # Apply multiplier only to base costs and profit
