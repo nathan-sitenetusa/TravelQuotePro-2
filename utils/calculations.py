@@ -41,25 +41,37 @@ def calculate_chaperone_hotel_rooms(num_chaperones):
 def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
     """Calculate room costs for different occupancy scenarios"""
     costs_by_occupancy = {}
-
+    
     # Get base room costs with tax
     base_tax_rate = hotel['tax_rate'] / 100 if hotel['tax_rate'] else 0
     num_nights = hotel['num_nights'] if hotel['num_nights'] else 1
-
-    # Calculate costs for each occupancy
+    
+    # Calculate chaperone rooms (2 per room)
+    chaperone_rooms = np.ceil(num_chaperones / 2)
+    
     if hotel['cost_per_room']:
         standard_room_cost = hotel['cost_per_room'] * num_nights * (1 + base_tax_rate)
-        for occupancy in [1, 2, 3, 4, 5]:  # Always calculate for all standard occupancies
-            room_cost = standard_room_cost  # Cost for one room for all nights with tax
-            cost_per_person = room_cost / occupancy  # Divide by number of people in room
-            costs_by_occupancy[occupancy] = cost_per_person
+        chaperone_total = chaperone_rooms * standard_room_cost
+        
+        for occupancy in hotel['occupancy_options']:
+            # Calculate rooms needed for paying participants
+            paying_rooms = np.ceil(num_paying / occupancy)
+            paying_total = paying_rooms * standard_room_cost
+            
+            # Distribute total costs among paying participants
+            total_cost = paying_total + chaperone_total
+            costs_by_occupancy[occupancy] = total_cost / num_paying if num_paying > 0 else 0
 
-    # High occupancy calculations (6-8 persons)
     if hotel['has_high_occupancy'] and hotel['high_occupancy_cost']:
-        high_occupancy_room_cost = hotel['high_occupancy_cost'] * num_nights * (1 + base_tax_rate)
-        for occupancy in [6, 7, 8]:
-            cost_per_person = high_occupancy_room_cost / occupancy
-            costs_by_occupancy[occupancy] = cost_per_person
+        high_room_cost = hotel['high_occupancy_cost'] * num_nights * (1 + base_tax_rate)
+        chaperone_total = chaperone_rooms * high_room_cost
+        
+        for occupancy in hotel['high_occupancy_options']:
+            paying_rooms = np.ceil(num_paying / occupancy)
+            paying_total = paying_rooms * high_room_cost
+            
+            total_cost = paying_total + chaperone_total
+            costs_by_occupancy[occupancy] = total_cost / num_paying if num_paying > 0 else 0
 
     return costs_by_occupancy
 
