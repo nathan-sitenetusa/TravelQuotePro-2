@@ -322,9 +322,17 @@ def main():
             if i < len(st.session_state.hotels) - 1:
                 st.markdown("---")
 
-    # Profit Amount
-    initial_profit = loaded_data['quote']['profit_amount'] if loaded_data else 50.0
-    profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=initial_profit)
+    # Profit Amount and Price Adjustments
+    col1, col2 = st.columns(2)
+    with col1:
+        initial_profit = loaded_data['quote']['profit_amount'] if loaded_data else 50.0
+        profit_amount = st.number_input("Profit Amount per Person ($)", min_value=0.0, value=initial_profit)
+    with col2:
+        use_range_factor = st.checkbox("Apply Factor to Higher Ranges", value=False)
+        if use_range_factor:
+            range_factor = st.number_input("Factor Amount to Subtract ($)", min_value=0.0, value=15.0)
+        else:
+            range_factor = 0.0
 
     # Save/Update buttons
     col1, col2, col3 = st.columns(3)
@@ -409,6 +417,11 @@ def main():
                         # Add hotel costs separately (no multiplier)
                         final_price = adjusted_base_costs + room_cost
 
+                        # Apply range factor for ranges above median
+                        if use_range_factor and i > 0:  # i > 0 means we're above the median range
+                            factor_adjustment = range_factor * i  # multiply factor by how many ranges above median
+                            final_price = final_price - factor_adjustment
+                        
                         # Round to whole dollars
                         final_price = math.ceil(final_price)
                         row.append(f"${final_price:,}")
