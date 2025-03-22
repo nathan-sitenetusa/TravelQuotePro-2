@@ -351,7 +351,7 @@ def main():
                 clear_form()
 
     # Always calculate quotes if we have the necessary information
-    if num_paying > 0:
+    if calculate_button or num_paying > 0:
         # Initialize room_costs_by_occupancy
         room_costs_by_occupancy = {}
 
