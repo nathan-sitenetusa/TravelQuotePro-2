@@ -350,8 +350,8 @@ def main():
             if st.button("Clear Form"):
                 clear_form()
 
-    # Always calculate quotes if we have the necessary information
-    if calculate_button or num_paying > 0:
+    # Calculate quotes whenever we have valid input
+    if num_paying > 0:
         # Initialize room_costs_by_occupancy
         room_costs_by_occupancy = {}
 
