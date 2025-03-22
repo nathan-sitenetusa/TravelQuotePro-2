@@ -376,14 +376,20 @@ def main():
                 # Create the header row
                 header = ["Group Size"] + [f"{occ}/room" for occ in occupancies]
 
-                # Calculate prices for each occupancy and group size
+                # Calculate dynamic ranges based on num_paying
+                range_size = 5
+                range_start = (num_paying // range_size) * range_size
                 rows = []
-                for range_name, multiplier in {
-                    "10-13 paying": 1.15,
-                    "14-16 paying": 1.10,
-                    "17-20 paying": 1.05,
-                    "21+ paying": 1.00
-                }.items():
+                
+                # Generate ranges (2 below median, median, 2 above median)
+                for i in range(-2, 3):  # -2, -1, 0, 1, 2
+                    start = range_start + (i * range_size)
+                    end = start + range_size - 1
+                    # Skip ranges that would start below 1
+                    if start < 1:
+                        continue
+                    range_name = f"{start}-{end} paying"
+                    multiplier = 1.15 if start < 14 else (1.10 if start < 17 else (1.05 if start < 21 else 1.00))
                     row = [range_name]
                     for occupancy in occupancies:
                         room_cost = room_costs_by_occupancy[occupancy]
