@@ -2,17 +2,21 @@ import numpy as np
 
 def calculate_transportation_costs(bus_cost, metro_cost, airline_cost, train_cost, num_paying, num_chaperones):
     """Calculate total transportation costs with proper distribution of chaperone costs"""
-    # Bus cost is divided equally among paying participants
-    bus_per_paying = bus_cost / num_paying if num_paying > 0 else 0
-
-    # Per person costs (including distribution of chaperone costs)
+    total_cost = 0
+    
+    # Bus cost divided among paying participants
+    if bus_cost:
+        total_cost += bus_cost / num_paying if num_paying > 0 else 0
+    
+    # Per person transportation costs
     per_person_costs = sum(filter(None, [metro_cost, airline_cost, train_cost]))
-    if per_person_costs > 0 and num_paying > 0:
-        # Add chaperone costs to paying participants
-        chaperone_distribution = (per_person_costs * num_chaperones) / num_paying
-        per_person_costs = per_person_costs + chaperone_distribution
-
-    return bus_per_paying + per_person_costs
+    if per_person_costs > 0:
+        # Add paying participant costs
+        total_cost += per_person_costs
+        # Add chaperone costs distributed among paying participants
+        total_cost += (per_person_costs * num_chaperones) / num_paying if num_paying > 0 else 0
+    
+    return total_cost
 
 def calculate_guide_cost(daily_rate, num_days, guide_tip_per_day=0):
     """Calculate total guide cost including tips"""
@@ -46,11 +50,12 @@ def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
     base_tax_rate = hotel['tax_rate'] / 100 if hotel['tax_rate'] else 0
     num_nights = hotel['num_nights'] if hotel['num_nights'] else 1
     
-    # Calculate chaperone rooms (2 per room)
-    chaperone_rooms = np.ceil(num_chaperones / 2)
-    
     if hotel['cost_per_room']:
-        standard_room_cost = hotel['cost_per_room'] * num_nights * (1 + base_tax_rate)
+        # Calculate room cost with tax
+        standard_room_cost = hotel['cost_per_room'] * (1 + base_tax_rate) * num_nights
+        
+        # Calculate chaperone rooms (2 per room)
+        chaperone_rooms = np.ceil(num_chaperones / 2)
         chaperone_total = chaperone_rooms * standard_room_cost
         
         for occupancy in hotel['occupancy_options']:
@@ -58,20 +63,28 @@ def calculate_room_costs_by_occupancy(hotel, num_paying, num_chaperones):
             paying_rooms = np.ceil(num_paying / occupancy)
             paying_total = paying_rooms * standard_room_cost
             
-            # Distribute total costs among paying participants
+            # Add chaperone room costs to total and distribute among paying participants
             total_cost = paying_total + chaperone_total
-            costs_by_occupancy[occupancy] = total_cost / num_paying if num_paying > 0 else 0
+            cost_per_paying = total_cost / num_paying if num_paying > 0 else 0
+            costs_by_occupancy[occupancy] = cost_per_paying
 
     if hotel['has_high_occupancy'] and hotel['high_occupancy_cost']:
-        high_room_cost = hotel['high_occupancy_cost'] * num_nights * (1 + base_tax_rate)
+        # Calculate high occupancy room cost with tax
+        high_room_cost = hotel['high_occupancy_cost'] * (1 + base_tax_rate) * num_nights
+        
+        # Calculate chaperone room costs
+        chaperone_rooms = np.ceil(num_chaperones / 2)
         chaperone_total = chaperone_rooms * high_room_cost
         
         for occupancy in hotel['high_occupancy_options']:
+            # Calculate rooms needed for paying participants
             paying_rooms = np.ceil(num_paying / occupancy)
             paying_total = paying_rooms * high_room_cost
             
+            # Add chaperone room costs to total and distribute among paying participants
             total_cost = paying_total + chaperone_total
-            costs_by_occupancy[occupancy] = total_cost / num_paying if num_paying > 0 else 0
+            cost_per_paying = total_cost / num_paying if num_paying > 0 else 0
+            costs_by_occupancy[occupancy] = cost_per_paying
 
     return costs_by_occupancy
 
